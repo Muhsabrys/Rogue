@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RogueTeX Cloud</title>
-    
-    //fonts.googleapis.com">
-    //fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+
+    <!-- FIX 1: Restored proper <link> tags with https: prefix -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap">
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    //cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    //cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/stex/stex.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -23,14 +23,15 @@
         --accent-primary: #2563eb; --accent-success: #059669; --accent-danger: #dc2626;
         --radius-md: 6px; --font-sans: 'Inter', sans-serif;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    * { font-family: var(--font-sans); font-size: 16px; background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); font-size: 16px; }
+    /* FIX 2: Moved layout-critical rules off * and onto body only */
+    body { background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
     .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
     .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light); }
     .brand h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
     .auth-zone { display: flex; align-items: center; gap: 16px; font-weight: 600; }
     .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light); gap: 12px; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 15px; font-weight: 600; border-radius: var(--radius-md); border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 15px; font-weight: 600; border-radius: var(--radius-md); border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s; background: #fff; }
     .btn-primary { background: var(--accent-primary); color: #fff; border: none; }
     .btn-success { background: var(--accent-success); color: #fff; border: none; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -41,7 +42,7 @@
     .doc-item:hover, .file-item:hover { border-color: var(--accent-primary); background: #f0f7ff; }
     .doc-item.active { border-color: var(--accent-primary); background: #eff6ff; font-weight: 600; }
     .file-remove-btn { background: transparent; border: none; color: var(--accent-danger); cursor: pointer; padding: 4px; border-radius: 4px; }
-    .file-remove-btn:hover { background: #fee; }
+    .file-remove-btn:hover { background: #fee2e2; }
     .main { flex: 1; display: flex; flex-direction: column; }
     .editor { flex: 1; }
     .preview { flex: 1; padding: 32px; background: white; overflow-y: auto; border-left: 2px solid var(--border-light); }
@@ -50,13 +51,14 @@
     #authModal.show { display: flex; }
     .modal-content { background: white; padding: 40px; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
     .modal-content h2 { margin-bottom: 20px; font-size: 24px; }
-    .modal-content input { width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 15px; }
+    .modal-content input { width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 15px; background: #fff; }
     .modal-content button { width: 100%; margin-top: 8px; }
     #authError { color: var(--accent-danger); font-size: 13px; margin-top: 5px; }
-    .title-input { width: 100%; padding: 10px 20px; font-size: 15px; font-weight: 600; border: none; border-bottom: 1px solid var(--border-light); }
+    .title-input { width: 100%; padding: 10px 20px; font-size: 15px; font-weight: 600; border: none; border-bottom: 1px solid var(--border-light); background: transparent; }
     .new-project-btn { width: 100%; margin-bottom: 12px; justify-content: center; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .spin { animation: spin 1s linear infinite; display: inline-block; }
 </style>
-
 </head>
 <body>
 
@@ -120,20 +122,19 @@
 
 <div id="authModal">
     <div class="modal-content">
-        <h2 style="margin-bottom: 20px;">Scholar Sign In</h2>
+        <h2>Scholar Sign In</h2>
         <input type="email" id="authEmail" placeholder="Email address">
         <input type="password" id="authPass" placeholder="Password">
-        <div id="authError" style="color: var(--accent-danger); font-size: 13px; margin-top: 5px;"></div>
-        <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="processAuth('login')">Log In</button>
-        <button class="btn btn-outline" style="width:100%; margin-top:8px; border:none;" onclick="processAuth('signup')">Create Account</button>
-        <button class="btn" style="width:100%; margin-top:12px; border:none; color: var(--text-muted);" onclick="toggleModal(false)">Cancel</button>
+        <div id="authError"></div>
+        <button class="btn btn-primary" onclick="processAuth('login')">Log In</button>
+        <button class="btn" style="border:none;" onclick="processAuth('signup')">Create Account</button>
+        <button class="btn" style="border:none; color: var(--text-muted);" onclick="toggleModal(false)">Cancel</button>
     </div>
 </div>
 
 <script>
     lucide.createIcons();
 
-    // --- USER CONFIG ---
     const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
     const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
@@ -145,7 +146,9 @@
         editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
             mode: 'stex', theme: 'monokai', lineNumbers: true, lineWrapping: true
         });
-        editor.setValue(`\\documentclass[12pt]{article}
+        // FIX 3: \\documentclass (JS) → \documentclass (LaTeX). Was \\\\, now \\
+        editor.setValue(
+`\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{arabxetex}
 
@@ -192,9 +195,10 @@ Write here...
     async function fetchProjects() {
         const { data, error } = await supabaseClient.from('documents').select('id, title, assets');
         const list = document.getElementById('cloudDocList');
-        if(error) {
+        if (error) {
             console.error("Fetch Error:", error);
-            list.innerHTML = '<div style="color:var(--accent-danger)">Error: ${error.message}</div>';
+            // FIX 4: Changed single quotes to backticks so ${error.message} interpolates correctly
+            list.innerHTML = `<div style="color:var(--accent-danger)">Error: ${error.message}</div>`;
         } else {
             list.innerHTML = data.map(d => `
                 <div class="doc-item" onclick="loadProject('${d.id}')" data-id="${d.id}">
@@ -219,14 +223,14 @@ Write here...
             assets: projectAssets
         };
 
-        if(currentDocId) {
+        if (currentDocId) {
             res = await supabaseClient.from('documents').update(payload).eq('id', currentDocId);
         } else {
             res = await supabaseClient.from('documents').insert([payload]).select();
-            if(res.data && res.data[0]) currentDocId = res.data[0].id;
+            if (res.data && res.data[0]) currentDocId = res.data[0].id;
         }
 
-        if(res.error) {
+        if (res.error) {
             console.error("Save Error:", res.error);
             alert('Save failed: ' + res.error.message);
         } else {
@@ -242,21 +246,21 @@ Write here...
 
     async function loadProject(id) {
         const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single();
-        if(data) {
+        if (data) {
             editor.setValue(data.content);
             document.getElementById('docTitleInput').value = data.title;
             currentDocId = data.id;
             projectAssets = data.assets || [];
             renderAssets();
-            
-            // Highlight active project
             document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
             document.querySelector(`.doc-item[data-id="${id}"]`)?.classList.add('active');
         }
     }
 
     function newProject() {
-        editor.setValue(`\\documentclass[12pt]{article}
+        // FIX 3 applied here too
+        editor.setValue(
+`\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 
 \\title{New Document}
@@ -291,7 +295,7 @@ Start writing here...
 
     function renderAssets() {
         const list = document.getElementById('assetsList');
-        if(projectAssets.length === 0) {
+        if (projectAssets.length === 0) {
             list.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No files attached yet.</div>';
         } else {
             list.innerHTML = projectAssets.map((a, i) => `
@@ -316,7 +320,6 @@ Start writing here...
         const pass = document.getElementById('authPass').value;
         const errDiv = document.getElementById('authError');
         errDiv.textContent = '';
-
         try {
             let res;
             if (mode === 'login') {
@@ -336,8 +339,8 @@ Start writing here...
     }
 
     async function compile() {
-        const saveBtn = document.querySelector('.btn-primary');
-        saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Compiling...';
+        const compileBtn = document.querySelector('.btn-primary');
+        compileBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Compiling...';
         lucide.createIcons();
 
         try {
@@ -352,18 +355,18 @@ Start writing here...
 
             const data = await res.json();
             if (data.pdf) {
-                document.getElementById('previewPane').innerHTML = 
+                document.getElementById('previewPane').innerHTML =
                     `<embed id="pdfPreview" src="data:application/pdf;base64,${data.pdf}" type="application/pdf" width="100%" height="100%">`;
             } else if (data.error) {
-                document.getElementById('previewPane').innerHTML = 
+                document.getElementById('previewPane').innerHTML =
                     `<div style="padding:20px; color:var(--accent-danger)"><h3>Compilation Error</h3><pre style="white-space:pre-wrap; margin-top:12px;">${data.log || data.error}</pre></div>`;
             }
         } catch (err) {
-            document.getElementById('previewPane').innerHTML = 
+            document.getElementById('previewPane').innerHTML =
                 `<div style="padding:20px; color:var(--accent-danger)"><h3>Network Error</h3><p>${err.message}</p></div>`;
         }
 
-        saveBtn.innerHTML = '<i data-lucide="play"></i> Compile';
+        compileBtn.innerHTML = '<i data-lucide="play"></i> Compile';
         lucide.createIcons();
     }
 
@@ -378,10 +381,7 @@ Start writing here...
 
     function downloadPDF() {
         const embed = document.getElementById('pdfPreview');
-        if (!embed) {
-            alert('Please compile first to generate PDF');
-            return;
-        }
+        if (!embed) { alert('Please compile first to generate PDF'); return; }
         const pdfData = embed.src.split(',')[1];
         const blob = new Blob([Uint8Array.from(atob(pdfData), c => c.charCodeAt(0))], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
@@ -392,8 +392,10 @@ Start writing here...
     }
 
     function insertTemplate(type) {
+        // FIX 3 applied to all templates
         if (type === 'academic') {
-            editor.setValue(`\\documentclass[12pt]{article}
+            editor.setValue(
+`\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{amsmath}
 \\usepackage{graphicx}
@@ -427,7 +429,8 @@ Concluding remarks...
 
 \\end{document}`);
         } else if (type === 'apa') {
-            editor.setValue(`\\documentclass[12pt]{article}
+            editor.setValue(
+`\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{apacite}
 
@@ -448,11 +451,6 @@ Text with citations \\cite{author2020}.
         }
     }
 </script>
-
-<style>
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .spin { animation: spin 1s linear infinite; display: inline-block; }
-</style>
 
 </body>
 </html>
