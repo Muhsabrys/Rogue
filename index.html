@@ -132,16 +132,9 @@
     // --- USER CONFIG ---
     const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
     const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
-    const SB_KEY = 'sb_publishable_9vW7vAPaaCCy3OOcMzvHUw_dDsRNgrj';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
 
-    const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
-        global: {
-            headers: { 
-                'apikey': SB_KEY,
-                'Authorization': `Bearer ${SB_KEY}`
-            }
-        }
-    });
+    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
     let editor, currentUser, currentDocId, projectAssets = [];
 
