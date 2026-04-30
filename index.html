@@ -7,85 +7,51 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/stex/stex.min.js"></script>
 
-    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
-            --bg-body: #f1f5f9;
-            --bg-surface: #ffffff;
-            --bg-panel: #f8fafc;
-            --border-light: #cbd5e1;
-            --text-main: #0f172a;
-            --text-muted: #475569;
-            --accent-primary: #2563eb;
-            --accent-success: #059669;
-            --accent-danger: #dc2626;
-            --radius-md: 6px;
-            --font-sans: 'Inter', sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
+            --bg-body: #f1f5f9; --bg-surface: #ffffff; --bg-panel: #f8fafc;
+            --border-light: #cbd5e1; --text-main: #0f172a; --text-muted: #475569;
+            --accent-primary: #2563eb; --accent-success: #059669; --accent-danger: #dc2626;
+            --radius-md: 6px; --font-sans: 'Inter', sans-serif;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: var(--font-sans); font-size: 16px; color: var(--text-main); background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
-
+        body { font-family: var(--font-sans); font-size: 16px; background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
         .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
 
-        /* Topbar - High Visibility */
-        .topbar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light);
-        }
+        /* Topbar */
+        .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light); }
         .brand h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
         .auth-zone { display: flex; align-items: center; gap: 16px; font-weight: 600; }
 
         /* Toolbar */
-        .toolbar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light);
-            gap: 12px;
-        }
-        .btn {
-            display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
-            font-size: 15px; font-weight: 600; border-radius: var(--radius-md);
-            border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s;
-        }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light); gap: 12px; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 15px; font-weight: 600; border-radius: var(--radius-md); border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--accent-primary); color: #fff; border: none; }
         .btn-success { background: var(--accent-success); color: #fff; border: none; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Workspace Layout */
+        /* Sidebar */
         .workspace { display: flex; flex: 1; min-height: 0; }
-
-        /* Sidebar - Managed Sections */
-        .sidebar {
-            width: 320px; background: var(--bg-panel); border-right: 2px solid var(--border-light);
-            display: flex; flex-direction: column; padding: 20px; gap: 28px; overflow-y: auto;
-        }
-        .sidebar-section h3 {
-            font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px;
-            color: var(--text-muted); margin-bottom: 12px; padding-bottom: 6px;
-            border-bottom: 1px solid var(--border-light);
-        }
+        .sidebar { width: 320px; background: var(--bg-panel); border-right: 2px solid var(--border-light); display: flex; flex-direction: column; padding: 20px; gap: 28px; overflow-y: auto; }
+        .sidebar-section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light); }
         
-        .doc-item, .file-item {
-            padding: 12px; background: #fff; border: 1px solid var(--border-light);
-            border-radius: var(--radius-md); margin-bottom: 8px; font-size: 14px;
-            cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: space-between;
-        }
-        .doc-item:hover, .file-item:hover { border-color: var(--accent-primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .doc-item, .file-item { padding: 12px; background: #fff; border: 1px solid var(--border-light); border-radius: var(--radius-md); margin-bottom: 8px; font-size: 14px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: space-between; }
+        .doc-item:hover { border-color: var(--accent-primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
-        /* Panes */
+        /* Editor & Preview */
         .editor-pane { flex: 1; background: #272822; min-width: 0; }
         .preview-pane { flex: 1; background: #fff; border-left: 2px solid var(--border-light); min-width: 0; }
         .CodeMirror { height: 100% !important; font-size: 16px; line-height: 1.6; }
-
         iframe { width: 100%; height: 100%; border: none; }
 
         /* Auth Modal */
@@ -93,7 +59,6 @@
         .modal.active { display: flex; }
         .modal-content { background: #fff; padding: 32px; border-radius: 12px; width: 380px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
         .modal-content input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border-light); border-radius: 6px; font-size: 16px; }
-
         .file-remove-btn { color: var(--accent-danger); border: none; background: transparent; cursor: pointer; padding: 4px; }
     </style>
 </head>
@@ -125,9 +90,7 @@
         <aside class="sidebar">
             <div class="sidebar-section">
                 <h3>Cloud Projects</h3>
-                <div id="cloudDocList" style="font-size: 14px; color: var(--text-muted);">
-                    Sign in to sync your work...
-                </div>
+                <div id="cloudDocList" style="font-size: 14px; color: var(--text-muted);">Sign in to sync your work...</div>
             </div>
             
             <div class="sidebar-section">
@@ -141,12 +104,8 @@
 
             <div class="sidebar-section">
                 <h3>Quick Templates</h3>
-                <button class="btn" style="width:100%; margin-bottom:8px; justify-content: flex-start;" onclick="loadTemplate('academic')">
-                    <i data-lucide="graduation-cap"></i> Academic Paper
-                </button>
-                <button class="btn" style="width:100%; justify-content: flex-start;" onclick="loadTemplate('apa')">
-                    <i data-lucide="book-open"></i> APA Bibliography
-                </button>
+                <button class="btn" style="width:100%; margin-bottom:8px; justify-content: flex-start;" onclick="loadTemplate('academic')"><i data-lucide="graduation-cap"></i> Academic Paper</button>
+                <button class="btn" style="width:100%; justify-content: flex-start;" onclick="loadTemplate('apa')"><i data-lucide="book-open"></i> APA Bibliography</button>
             </div>
         </aside>
 
@@ -180,7 +139,13 @@
     const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
     const SB_KEY = 'sb_publishable_9vW7vAPaaCCy3OOcMzvHUw_dDsRNgrj';
 
-    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+    // FIX: Forced header injection for newer Publishable keys
+    const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
+        global: {
+            headers: { 'apikey': SB_KEY }
+        }
+    });
+
     let editor, currentUser, currentDocId, projectAssets = [];
 
     window.onload = () => {
@@ -188,11 +153,9 @@
             mode: 'stex', theme: 'monokai', lineNumbers: true, lineWrapping: true
         });
         checkSession();
-        
         const lastWork = localStorage.getItem('roguetex_local_bak');
         if(lastWork) editor.setValue(lastWork);
         else loadTemplate('minimal');
-
         editor.on('change', () => localStorage.setItem('roguetex_local_bak', editor.getValue()));
     };
 
@@ -217,11 +180,9 @@
         const email = document.getElementById('authEmail').value;
         const pass = document.getElementById('authPass').value;
         const err = document.getElementById('authError');
-        
         let result = mode === 'login' 
             ? await supabaseClient.auth.signInWithPassword({ email, password: pass })
             : await supabaseClient.auth.signUp({ email, password: pass });
-
         if(result.error) err.textContent = result.error.message;
         else toggleModal(false);
     }
@@ -231,39 +192,28 @@
     async function fetchProjects() {
         const { data, error } = await supabaseClient.from('documents').select('id, title');
         const list = document.getElementById('cloudDocList');
-        if(error) list.textContent = "Error loading projects.";
-        else {
+        if(error) {
+            console.error(error);
+            list.textContent = "Error loading projects.";
+        } else {
             list.innerHTML = data.map(d => `<div class="doc-item" onclick="loadProject('${d.id}')"><span>${d.title}</span><i data-lucide="chevron-right" style="width:14px"></i></div>`).join('') || "No projects saved yet.";
             lucide.createIcons();
         }
     }
 
     async function saveToCloud() {
-        const payload = { 
-            user_id: currentUser.id, 
-            title: document.getElementById('docTitleInput').value, 
-            content: editor.getValue() 
-        };
-        const saveBtn = document.getElementById('saveCloudBtn');
-        saveBtn.textContent = "Saving...";
-
+        const payload = { user_id: currentUser.id, title: document.getElementById('docTitleInput').value, content: editor.getValue() };
         if(currentDocId) await supabaseClient.from('documents').update(payload).eq('id', currentDocId);
         else {
             const { data } = await supabaseClient.from('documents').insert([payload]).select();
-            if(data) currentDocId = data[0].id;
+            if(data && data.length > 0) currentDocId = data[0].id;
         }
-        saveBtn.innerHTML = `<i data-lucide="cloud"></i> Save to Cloud`;
-        lucide.createIcons();
         fetchProjects();
     }
 
     async function loadProject(id) {
         const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single();
-        if(data) {
-            editor.setValue(data.content);
-            document.getElementById('docTitleInput').value = data.title;
-            currentDocId = data.id;
-        }
+        if(data) { editor.setValue(data.content); document.getElementById('docTitleInput').value = data.title; currentDocId = data.id; }
     }
 
     function handleFileUpload(input) {
@@ -271,43 +221,34 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const base64 = e.target.result.split(',')[1];
-                if(!projectAssets.find(a => a.name === file.name)) {
-                    projectAssets.push({ name: file.name, content: base64 });
-                    renderAssets();
-                }
+                if(!projectAssets.find(a => a.name === file.name)) { projectAssets.push({ name: file.name, content: base64 }); renderAssets(); }
             };
             reader.readAsDataURL(file);
         }
     }
 
     function removeAsset(idx) { projectAssets.splice(idx, 1); renderAssets(); }
-
     function renderAssets() {
-        document.getElementById('fileListDisplay').innerHTML = projectAssets.map((a, i) => `
-            <div class="file-item">
-                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${a.name}</span>
-                <button class="file-remove-btn" onclick="removeAsset(${i})"><i data-lucide="trash-2" style="width:14px"></i></button>
-            </div>`).join('');
+        document.getElementById('fileListDisplay').innerHTML = projectAssets.map((a, i) => `<div class="file-item"><span>${a.name}</span><button class="file-remove-btn" onclick="removeAsset(${i})"><i data-lucide="trash-2" style="width:14px"></i></button></div>`).join('');
         lucide.createIcons();
     }
 
     async function compileLatex() {
         document.querySelector('.brand h1').textContent = "Compiling...";
-        const response = await fetch(COMPILE_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                latex: editor.getValue(), 
-                files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) 
-            })
-        });
-        const data = await response.json();
+        try {
+            const response = await fetch(COMPILE_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ latex: editor.getValue(), files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) })
+            });
+            const data = await response.json();
+            if(data.success) {
+                document.getElementById('pdfPreviewZone').innerHTML = `<iframe src="data:application/pdf;base64,${data.pdf}"></iframe>`;
+                window.latestPdfData = data.pdf;
+                document.getElementById('downloadPdfBtn').disabled = false;
+            } else alert("Error: " + data.error);
+        } catch (e) { alert("Compiler offline."); }
         document.querySelector('.brand h1').textContent = "RogueTeX";
-        if(data.success) {
-            document.getElementById('pdfPreviewZone').innerHTML = `<iframe src="data:application/pdf;base64,${data.pdf}"></iframe>`;
-            window.latestPdfData = data.pdf;
-            document.getElementById('downloadPdfBtn').disabled = false;
-        } else alert("Error: " + data.error);
     }
 
     function loadTemplate(t) {
@@ -316,20 +257,8 @@
         else editor.setValue(`\\documentclass[12pt]{article}\n\\begin{document}\nHello World\n\\end{document}`);
     }
 
-    function downloadPDF() {
-        const a = document.createElement('a');
-        a.href = `data:application/pdf;base64,${window.latestPdfData}`;
-        a.download = document.getElementById('docTitleInput').value + ".pdf";
-        a.click();
-    }
-
-    function downloadTex() {
-        const blob = new Blob([editor.getValue()], {type: 'text/plain'});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = document.getElementById('docTitleInput').value + ".tex";
-        a.click();
-    }
+    function downloadPDF() { const a = document.createElement('a'); a.href = `data:application/pdf;base64,${window.latestPdfData}`; a.download = document.getElementById('docTitleInput').value + ".pdf"; a.click(); }
+    function downloadTex() { const blob = new Blob([editor.getValue()], {type: 'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = document.getElementById('docTitleInput').value + ".tex"; a.click(); }
 </script>
 </body>
 </html>
