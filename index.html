@@ -28,19 +28,16 @@
         body { font-family: var(--font-sans); font-size: 16px; background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
         .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
 
-        /* Topbar */
         .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light); }
         .brand h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
         .auth-zone { display: flex; align-items: center; gap: 16px; font-weight: 600; }
 
-        /* Toolbar */
         .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light); gap: 12px; }
         .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 15px; font-weight: 600; border-radius: var(--radius-md); border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--accent-primary); color: #fff; border: none; }
         .btn-success { background: var(--accent-success); color: #fff; border: none; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Sidebar */
         .workspace { display: flex; flex: 1; min-height: 0; }
         .sidebar { width: 320px; background: var(--bg-panel); border-right: 2px solid var(--border-light); display: flex; flex-direction: column; padding: 20px; gap: 28px; overflow-y: auto; }
         .sidebar-section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border-light); }
@@ -48,13 +45,11 @@
         .doc-item, .file-item { padding: 12px; background: #fff; border: 1px solid var(--border-light); border-radius: var(--radius-md); margin-bottom: 8px; font-size: 14px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: space-between; }
         .doc-item:hover { border-color: var(--accent-primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
-        /* Editor & Preview */
         .editor-pane { flex: 1; background: #272822; min-width: 0; }
         .preview-pane { flex: 1; background: #fff; border-left: 2px solid var(--border-light); min-width: 0; }
         .CodeMirror { height: 100% !important; font-size: 16px; line-height: 1.6; }
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* Auth Modal */
         .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .modal.active { display: flex; }
         .modal-content { background: #fff; padding: 32px; border-radius: 12px; width: 380px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
@@ -132,16 +127,12 @@
 </div>
 
 <script>
-<script>
     lucide.createIcons();
     
-    // --- USER CONFIG ---
     const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
     const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
-    // Use your specific Publishable Key here
     const SB_KEY = 'sb_publishable_9vW7vAPaaCCy3OOcMzvHUw_dDsRNgrj';
 
-    // FORCED INITIALIZATION: This manually injects the API key into every request header
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
         global: {
             headers: { 
@@ -195,12 +186,7 @@
     async function signOut() { await supabaseClient.auth.signOut(); }
 
     async function fetchProjects() {
-        // Manual header fetch to ensure key is present
-        const { data, error } = await supabaseClient
-            .from('documents')
-            .select('id, title')
-            .setHeader('apikey', SB_KEY); // Surgical injection
-
+        const { data, error } = await supabaseClient.from('documents').select('id, title');
         const list = document.getElementById('cloudDocList');
         if(error) {
             console.error("Fetch Error:", error);
@@ -221,17 +207,13 @@
         saveBtn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing...`;
         lucide.createIcons();
 
-        const payload = { 
-            user_id: currentUser.id, 
-            title: title, 
-            content: editor.getValue() 
-        };
+        const payload = { user_id: currentUser.id, title: title, content: editor.getValue() };
 
         let res;
         if(currentDocId) {
-            res = await supabaseClient.from('documents').update(payload).eq('id', currentDocId).setHeader('apikey', SB_KEY);
+            res = await supabaseClient.from('documents').update(payload).eq('id', currentDocId);
         } else {
-            res = await supabaseClient.from('documents').insert([payload]).select().setHeader('apikey', SB_KEY);
+            res = await supabaseClient.from('documents').insert([payload]).select();
             if(res.data && res.data.length > 0) currentDocId = res.data[0].id;
         }
 
@@ -246,16 +228,11 @@
             }, 2000);
             fetchProjects();
         }
-        lucide.createIcons();
     }
 
     async function loadProject(id) {
-        const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single().setHeader('apikey', SB_KEY);
-        if(data) { 
-            editor.setValue(data.content); 
-            document.getElementById('docTitleInput').value = data.title; 
-            currentDocId = data.id; 
-        }
+        const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single();
+        if(data) { editor.setValue(data.content); document.getElementById('docTitleInput').value = data.title; currentDocId = data.id; }
     }
 
     function handleFileUpload(input) {
@@ -263,10 +240,7 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const base64 = e.target.result.split(',')[1];
-                if(!projectAssets.find(a => a.name === file.name)) { 
-                    projectAssets.push({ name: file.name, content: base64 }); 
-                    renderAssets(); 
-                }
+                if(!projectAssets.find(a => a.name === file.name)) { projectAssets.push({ name: file.name, content: base64 }); renderAssets(); }
             };
             reader.readAsDataURL(file);
         }
@@ -284,10 +258,7 @@
             const response = await fetch(COMPILE_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    latex: editor.getValue(), 
-                    files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) 
-                })
+                body: JSON.stringify({ latex: editor.getValue(), files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) })
             });
             const data = await response.json();
             if(data.success) {
