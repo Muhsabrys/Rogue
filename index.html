@@ -129,6 +129,7 @@
 <script>
     lucide.createIcons();
     
+    // --- USER CONFIG ---
     const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
     const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
     const SB_KEY = 'sb_publishable_9vW7vAPaaCCy3OOcMzvHUw_dDsRNgrj';
@@ -155,7 +156,9 @@
         editor.on('change', () => localStorage.setItem('roguetex_local_bak', editor.getValue()));
     };
 
-    function toggleModal(open) { document.getElementById('authModal').classList.toggle('active', open); }
+    function toggleModal(open) { 
+        document.getElementById('authModal').classList.toggle('active', open); 
+    }
 
     async function checkSession() {
         const { data } = await supabaseClient.auth.getSession();
@@ -232,7 +235,11 @@
 
     async function loadProject(id) {
         const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single();
-        if(data) { editor.setValue(data.content); document.getElementById('docTitleInput').value = data.title; currentDocId = data.id; }
+        if(data) { 
+            editor.setValue(data.content); 
+            document.getElementById('docTitleInput').value = data.title; 
+            currentDocId = data.id; 
+        }
     }
 
     function handleFileUpload(input) {
@@ -240,15 +247,25 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const base64 = e.target.result.split(',')[1];
-                if(!projectAssets.find(a => a.name === file.name)) { projectAssets.push({ name: file.name, content: base64 }); renderAssets(); }
+                if(!projectAssets.find(a => a.name === file.name)) { 
+                    projectAssets.push({ name: file.name, content: base64 }); 
+                    renderAssets(); 
+                }
             };
             reader.readAsDataURL(file);
         }
     }
 
     function removeAsset(idx) { projectAssets.splice(idx, 1); renderAssets(); }
+    
     function renderAssets() {
-        document.getElementById('fileListDisplay').innerHTML = projectAssets.map((a, i) => `<div class="file-item"><span>${a.name}</span><button class="file-remove-btn" onclick="removeAsset(${i})"><i data-lucide="trash-2" style="width:14px"></i></button></div>`).join('');
+        document.getElementById('fileListDisplay').innerHTML = projectAssets.map((a, i) => `
+            <div class="file-item">
+                <span>${a.name}</span>
+                <button class="file-remove-btn" onclick="removeAsset(${i})">
+                    <i data-lucide="trash-2" style="width:14px"></i>
+                </button>
+            </div>`).join('');
         lucide.createIcons();
     }
 
@@ -258,7 +275,10 @@
             const response = await fetch(COMPILE_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ latex: editor.getValue(), files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) })
+                body: JSON.stringify({ 
+                    latex: editor.getValue(), 
+                    files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) 
+                })
             });
             const data = await response.json();
             if(data.success) {
@@ -277,6 +297,7 @@
     }
 
     function downloadPDF() { const a = document.createElement('a'); a.href = `data:application/pdf;base64,${window.latestPdfData}`; a.download = document.getElementById('docTitleInput').value + ".pdf"; a.click(); }
+    
     function downloadTex() { const blob = new Blob([editor.getValue()], {type: 'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = document.getElementById('docTitleInput').value + ".tex"; a.click(); }
 </script>
 </body>
