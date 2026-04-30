@@ -132,17 +132,22 @@
 </div>
 
 <script>
+<script>
     lucide.createIcons();
     
     // --- USER CONFIG ---
     const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
     const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
+    // Use your specific Publishable Key here
     const SB_KEY = 'sb_publishable_9vW7vAPaaCCy3OOcMzvHUw_dDsRNgrj';
 
-    // FIX: Forced header injection for newer Publishable keys
+    // FORCED INITIALIZATION: This manually injects the API key into every request header
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
         global: {
-            headers: { 'apikey': SB_KEY }
+            headers: { 
+                'apikey': SB_KEY,
+                'Authorization': `Bearer ${SB_KEY}`
+            }
         }
     });
 
@@ -190,30 +195,67 @@
     async function signOut() { await supabaseClient.auth.signOut(); }
 
     async function fetchProjects() {
-        const { data, error } = await supabaseClient.from('documents').select('id, title');
+        // Manual header fetch to ensure key is present
+        const { data, error } = await supabaseClient
+            .from('documents')
+            .select('id, title')
+            .setHeader('apikey', SB_KEY); // Surgical injection
+
         const list = document.getElementById('cloudDocList');
         if(error) {
-            console.error(error);
-            list.textContent = "Error loading projects.";
+            console.error("Fetch Error:", error);
+            list.innerHTML = `<div style="color:var(--accent-danger)">Error: ${error.message}</div>`;
         } else {
-            list.innerHTML = data.map(d => `<div class="doc-item" onclick="loadProject('${d.id}')"><span>${d.title}</span><i data-lucide="chevron-right" style="width:14px"></i></div>`).join('') || "No projects saved yet.";
+            list.innerHTML = data.map(d => `
+                <div class="doc-item" onclick="loadProject('${d.id}')">
+                    <span>${d.title}</span>
+                    <i data-lucide="chevron-right" style="width:14px"></i>
+                </div>`).join('') || "No projects saved yet.";
             lucide.createIcons();
         }
     }
 
     async function saveToCloud() {
-        const payload = { user_id: currentUser.id, title: document.getElementById('docTitleInput').value, content: editor.getValue() };
-        if(currentDocId) await supabaseClient.from('documents').update(payload).eq('id', currentDocId);
-        else {
-            const { data } = await supabaseClient.from('documents').insert([payload]).select();
-            if(data && data.length > 0) currentDocId = data[0].id;
+        const title = document.getElementById('docTitleInput').value;
+        const saveBtn = document.getElementById('saveCloudBtn');
+        saveBtn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Syncing...`;
+        lucide.createIcons();
+
+        const payload = { 
+            user_id: currentUser.id, 
+            title: title, 
+            content: editor.getValue() 
+        };
+
+        let res;
+        if(currentDocId) {
+            res = await supabaseClient.from('documents').update(payload).eq('id', currentDocId).setHeader('apikey', SB_KEY);
+        } else {
+            res = await supabaseClient.from('documents').insert([payload]).select().setHeader('apikey', SB_KEY);
+            if(res.data && res.data.length > 0) currentDocId = res.data[0].id;
         }
-        fetchProjects();
+
+        if(res.error) {
+            alert("Save failed: " + res.error.message);
+            saveBtn.innerHTML = `<i data-lucide="alert-triangle"></i> Error`;
+        } else {
+            saveBtn.innerHTML = `<i data-lucide="check"></i> Saved`;
+            setTimeout(() => {
+                saveBtn.innerHTML = `<i data-lucide="cloud"></i> Save to Cloud`;
+                lucide.createIcons();
+            }, 2000);
+            fetchProjects();
+        }
+        lucide.createIcons();
     }
 
     async function loadProject(id) {
-        const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single();
-        if(data) { editor.setValue(data.content); document.getElementById('docTitleInput').value = data.title; currentDocId = data.id; }
+        const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single().setHeader('apikey', SB_KEY);
+        if(data) { 
+            editor.setValue(data.content); 
+            document.getElementById('docTitleInput').value = data.title; 
+            currentDocId = data.id; 
+        }
     }
 
     function handleFileUpload(input) {
@@ -221,7 +263,10 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const base64 = e.target.result.split(',')[1];
-                if(!projectAssets.find(a => a.name === file.name)) { projectAssets.push({ name: file.name, content: base64 }); renderAssets(); }
+                if(!projectAssets.find(a => a.name === file.name)) { 
+                    projectAssets.push({ name: file.name, content: base64 }); 
+                    renderAssets(); 
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -239,7 +284,10 @@
             const response = await fetch(COMPILE_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ latex: editor.getValue(), files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) })
+                body: JSON.stringify({ 
+                    latex: editor.getValue(), 
+                    files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) 
+                })
             });
             const data = await response.json();
             if(data.success) {
@@ -259,6 +307,7 @@
 
     function downloadPDF() { const a = document.createElement('a'); a.href = `data:application/pdf;base64,${window.latestPdfData}`; a.download = document.getElementById('docTitleInput').value + ".pdf"; a.click(); }
     function downloadTex() { const blob = new Blob([editor.getValue()], {type: 'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = document.getElementById('docTitleInput').value + ".tex"; a.click(); }
+</script>
 </script>
 </body>
 </html>
