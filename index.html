@@ -321,18 +321,18 @@
     </div>
 
     <script>
-        lucide.createIcons();
+lucide.createIcons();
 
         // ==========================================
         // 1. CONFIGURATION (ENTER YOUR URLS HERE)
         // ==========================================
-        const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
-        
+        const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile'; 
         const SUPABASE_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co/rest/v1/';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
         // ==========================================
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // FIX: Changed variable name to supabaseClient to prevent collision
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         let editor = null;
         let currentUser = null;
@@ -349,10 +349,13 @@
             setupResizer();
             checkUser();
             
-            // Auto-save strictly to local storage as backup
+            // Auto-save strictly to local storage for Guest Mode
             const backup = localStorage.getItem('roguetex-local-backup');
-            if(backup) editor.setValue(backup);
-            else loadTemplate('minimal');
+            if(backup) {
+                editor.setValue(backup);
+            } else {
+                loadTemplate('minimal');
+            }
 
             editor.on('change', () => {
                 localStorage.setItem('roguetex-local-backup', editor.getValue());
@@ -361,10 +364,10 @@
 
         // --- Authentication Logic ---
         async function checkUser() {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             updateAuthUI(session?.user || null);
 
-            supabase.auth.onAuthStateChange((_event, session) => {
+            supabaseClient.auth.onAuthStateChange((_event, session) => {
                 updateAuthUI(session?.user || null);
             });
         }
@@ -375,6 +378,7 @@
             const logoutBtn = document.getElementById('logoutBtn');
             const emailDisplay = document.getElementById('userEmailDisplay');
             const saveBtn = document.getElementById('saveCloudBtn');
+            const cloudList = document.getElementById('cloudDocList');
 
             if (user) {
                 loginBtn.style.display = 'none';
@@ -391,7 +395,16 @@
                 saveBtn.disabled = true;
                 saveBtn.title = "Sign in to save to cloud";
                 currentDocumentId = null;
-                document.getElementById('cloudDocList').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0;">Sign in to view and save documents.</div>';
+                
+                // Enhanced Guest Mode Messaging
+                cloudList.innerHTML = `
+                    <div style="padding: 16px; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); line-height: 1.5;">
+                        <span style="display: block; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Guest Workspace Active</span>
+                        <span style="font-size: 14px; color: var(--text-muted);">You can write, compile, and download files right now. Your work is automatically saved to this browser.</span>
+                        <div style="height: 12px;"></div>
+                        <span style="font-size: 14px; color: var(--text-muted);">Sign in to save documents permanently and access them across devices.</span>
+                    </div>
+                `;
             }
         }
 
@@ -418,10 +431,10 @@
             let result;
 
             if (action === 'signup') {
-                result = await supabase.auth.signUp({ email, password });
-                if(!result.error) errorDiv.textContent = "Check your email for confirmation link if required, or try logging in.";
+                result = await supabaseClient.auth.signUp({ email, password });
+                if(!result.error) errorDiv.textContent = "Account created! You may now log in.";
             } else {
-                result = await supabase.auth.signInWithPassword({ email, password });
+                result = await supabaseClient.auth.signInWithPassword({ email, password });
             }
 
             if (result.error) {
@@ -432,7 +445,7 @@
         }
 
         async function signOut() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
         }
 
         // --- Database Logic ---
@@ -440,15 +453,15 @@
             if (!currentUser) return;
             
             const listContainer = document.getElementById('cloudDocList');
-            listContainer.innerHTML = 'Loading documents...';
+            listContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0;">Loading documents...</div>';
 
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('documents')
                 .select('id, title, updated_at')
                 .order('updated_at', { ascending: false });
 
             if (error) {
-                listContainer.innerHTML = 'Error loading documents.';
+                listContainer.innerHTML = '<div style="text-align: center; color: var(--accent-danger); font-size: 14px; padding: 24px 0;">Error loading documents.</div>';
                 return;
             }
 
@@ -487,11 +500,9 @@
 
             let response;
             if (currentDocumentId) {
-                // Update existing
-                response = await supabase.from('documents').update(docData).eq('id', currentDocumentId);
+                response = await supabaseClient.from('documents').update(docData).eq('id', currentDocumentId);
             } else {
-                // Insert new
-                response = await supabase.from('documents').insert([docData]).select();
+                response = await supabaseClient.from('documents').insert([docData]).select();
                 if(response.data && response.data.length > 0) {
                     currentDocumentId = response.data[0].id;
                 }
@@ -509,7 +520,7 @@
         }
 
         async function loadCloudDocument(id) {
-            const { data, error } = await supabase.from('documents').select('*').eq('id', id).single();
+            const { data, error } = await supabaseClient.from('documents').select('*').eq('id', id).single();
             if (error || !data) {
                 alert("Could not load document.");
                 return;
@@ -518,7 +529,7 @@
             currentDocumentId = data.id;
             document.getElementById('documentTitle').value = data.title;
             editor.setValue(data.content);
-            fetchCloudDocuments(); // Refresh list to highlight active
+            fetchCloudDocuments(); 
         }
 
         // --- Utility & UI ---
@@ -526,8 +537,8 @@
             const code = `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\n\\title{New Document}\n\\author{Author Name}\n\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\nBegin writing here.\n\n\\end{document}`;
             editor.setValue(code);
             document.getElementById('documentTitle').value = 'Untitled Document';
-            currentDocumentId = null; // Unlink from cloud so it saves as new
-            fetchCloudDocuments();
+            currentDocumentId = null; 
+            if(currentUser) fetchCloudDocuments();
         }
 
         function downloadTex() {
@@ -643,7 +654,7 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        }
+        }        
     </script>
 </body>
 </html>
