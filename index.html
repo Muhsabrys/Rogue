@@ -20,379 +20,721 @@
         --bg-body: #f1f5f9; --bg-surface: #ffffff; --bg-panel: #f8fafc;
         --border-light: #cbd5e1; --text-main: #0f172a; --text-muted: #475569;
         --accent-primary: #2563eb; --accent-success: #059669; --accent-danger: #dc2626;
+        --accent-warning: #d97706;
         --radius-md: 6px; --font-sans: 'Inter', sans-serif;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); font-size: 16px; }
     body { background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
     .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light); }
+
+    /* ── Topbar ── */
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light); flex-shrink: 0; }
     .brand h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
     .auth-zone { display: flex; align-items: center; gap: 16px; font-weight: 600; }
-    .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light); gap: 12px; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 15px; font-weight: 600; border-radius: var(--radius-md); border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s; background: #fff; }
+
+    /* ── Toolbar ── */
+    .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light); gap: 12px; flex-shrink: 0; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: 14px; font-weight: 600; border-radius: var(--radius-md); border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s; background: #fff; color: var(--text-main); white-space: nowrap; }
+    .btn:hover { border-color: #94a3b8; background: #f8fafc; }
     .btn-primary { background: var(--accent-primary); color: #fff; border: none; }
+    .btn-primary:hover { background: #1d4ed8; }
     .btn-success { background: var(--accent-success); color: #fff; border: none; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-success:hover { background: #047857; }
+    .btn-danger { background: var(--accent-danger); color: #fff; border: none; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+    .title-input { flex: 1; padding: 9px 14px; font-size: 15px; font-weight: 600; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: #fff; min-width: 0; }
+
+    /* ── Main workspace ── */
     .workspace { display: flex; flex: 1; min-height: 0; }
-    .sidebar { width: 320px; background: var(--bg-panel); border-right: 2px solid var(--border-light); display: flex; flex-direction: column; padding: 20px; gap: 28px; overflow-y: auto; }
-    .sidebar h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 12px; }
-    .doc-item, .file-item { padding: 12px; background: #fff; border: 1px solid var(--border-light); border-radius: var(--radius-md); margin-bottom: 8px; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-    .doc-item:hover, .file-item:hover { border-color: var(--accent-primary); background: #f0f7ff; }
-    .doc-item.active { border-color: var(--accent-primary); background: #eff6ff; font-weight: 600; }
-    .file-remove-btn { background: transparent; border: none; color: var(--accent-danger); cursor: pointer; padding: 4px; border-radius: 4px; }
-    .file-remove-btn:hover { background: #fee2e2; }
-    .main { flex: 1; display: flex; flex-direction: column; }
-    .preview { flex: 1; padding: 32px; background: white; overflow-y: auto; border-left: 2px solid var(--border-light); }
-    #pdfPreview { width: 100%; height: 100%; border: none; }
-    #authModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 999; }
+
+    /* ── Left sidebar: project list ── */
+    .sidebar-projects {
+        width: 240px; background: var(--bg-panel); border-right: 2px solid var(--border-light);
+        display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .sidebar-projects-header {
+        padding: 14px 16px 10px; border-bottom: 1px solid var(--border-light);
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    .sidebar-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
+    .sidebar-projects-list { flex: 1; overflow-y: auto; padding: 8px; }
+
+    /* New-project dropdown */
+    .new-project-group { display: flex; gap: 4px; }
+    .new-project-group .btn { flex: 1; justify-content: center; font-size: 13px; padding: 8px 10px; }
+    .dropdown-wrapper { position: relative; }
+    .dropdown-toggle { padding: 8px 10px !important; }
+    .dropdown-menu {
+        position: absolute; top: calc(100% + 4px); right: 0; background: #fff;
+        border: 1px solid var(--border-light); border-radius: var(--radius-md);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 200; min-width: 210px; overflow: hidden; display: none;
+    }
+    .dropdown-menu.open { display: block; }
+    .dropdown-item {
+        display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+        font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-main); transition: 0.15s;
+    }
+    .dropdown-item:hover { background: #f0f7ff; color: var(--accent-primary); }
+    .dropdown-item i { flex-shrink: 0; }
+
+    /* Project items */
+    .project-item {
+        padding: 10px 12px; border-radius: var(--radius-md); margin-bottom: 4px;
+        font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        transition: 0.15s; color: var(--text-main); border: 1px solid transparent;
+    }
+    .project-item:hover { background: #f0f7ff; border-color: #bfdbfe; }
+    .project-item.active { background: #eff6ff; border-color: var(--accent-primary); font-weight: 600; color: var(--accent-primary); }
+    .project-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .project-item-delete {
+        flex-shrink: 0; background: transparent; border: none; color: #94a3b8;
+        cursor: pointer; padding: 2px; border-radius: 4px; display: none; line-height: 0;
+    }
+    .project-item:hover .project-item-delete { display: block; }
+    .project-item-delete:hover { color: var(--accent-danger); background: #fee2e2; }
+
+    /* ── Middle: file panel + editor ── */
+    .editor-area { flex: 1; display: flex; min-width: 0; }
+
+    /* File panel */
+    .file-panel {
+        width: 220px; background: #fff; border-right: 1px solid var(--border-light);
+        display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .file-panel-header {
+        padding: 12px 14px; border-bottom: 1px solid var(--border-light);
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    .file-panel-actions { display: flex; gap: 6px; }
+    .file-panel-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 7px 8px; }
+    .file-panel-body { flex: 1; overflow-y: auto; padding: 8px; }
+
+    /* File group */
+    .file-group { margin-bottom: 12px; }
+    .file-group-label {
+        font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
+        font-weight: 700; padding: 4px 6px 6px; display: flex; align-items: center; gap: 6px;
+    }
+    .file-entry {
+        display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+        border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.15s;
+        border: 1px solid transparent; color: var(--text-main);
+    }
+    .file-entry:hover { background: #f8fafc; border-color: var(--border-light); }
+    .file-entry.active-file { background: #eff6ff; border-color: #bfdbfe; font-weight: 600; color: var(--accent-primary); }
+    .file-entry-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-entry-remove {
+        flex-shrink: 0; background: transparent; border: none; color: #94a3b8;
+        cursor: pointer; padding: 2px; border-radius: 3px; display: none; line-height: 0;
+    }
+    .file-entry:hover .file-entry-remove { display: block; }
+    .file-entry-remove:hover { color: var(--accent-danger); }
+
+    /* Icon colors by type */
+    .icon-tex { color: #2563eb; }
+    .icon-bib { color: #059669; }
+    .icon-img { color: #d97706; }
+    .icon-other { color: #94a3b8; }
+
+    /* Editor column */
+    .editor-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .CodeMirror { flex: 1; height: 100% !important; font-family: 'JetBrains Mono', monospace !important; font-size: 14px !important; }
+    .CodeMirror-scroll { height: 100%; }
+
+    /* ── Preview ── */
+    .preview { width: 45%; background: white; overflow-y: auto; border-left: 2px solid var(--border-light); display: flex; flex-direction: column; flex-shrink: 0; }
+    .preview-placeholder { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--text-muted); flex-direction: column; gap: 12px; padding: 32px; }
+    #pdfPreview { width: 100%; flex: 1; border: none; }
+
+    /* ── Auth modal ── */
+    #authModal { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 999; }
     #authModal.show { display: flex; }
     .modal-content { background: white; padding: 40px; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-    .modal-content h2 { margin-bottom: 20px; font-size: 24px; }
-    .modal-content input { width: 100%; padding: 12px; margin-bottom: 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 15px; background: #fff; }
-    .modal-content button { width: 100%; margin-top: 8px; }
-    #authError { color: var(--accent-danger); font-size: 13px; margin-top: 5px; }
-    .title-input { width: 100%; padding: 10px 20px; font-size: 15px; font-weight: 600; border: none; border-bottom: 1px solid var(--border-light); background: transparent; }
-    .new-project-btn { width: 100%; margin-bottom: 12px; justify-content: center; }
+    .modal-content h2 { margin-bottom: 20px; font-size: 22px; font-weight: 700; }
+    .modal-content input { width: 100%; padding: 11px 14px; margin-bottom: 14px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 14px; background: #fff; }
+    .modal-content input:focus { outline: 2px solid var(--accent-primary); border-color: transparent; }
+    #authError { color: var(--accent-danger); font-size: 13px; margin-top: 4px; min-height: 18px; }
+
+    /* ── Confirm modal ── */
+    #confirmModal { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    #confirmModal.show { display: flex; }
+    .confirm-box { background: #fff; padding: 28px 32px; border-radius: 10px; max-width: 380px; width: 90%; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+    .confirm-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .confirm-box p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+    .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* ── Toast ── */
+    #toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+        background: #1e293b; color: #fff; padding: 10px 20px; border-radius: 8px;
+        font-size: 14px; font-weight: 500; z-index: 2000; transition: transform 0.3s ease;
+        pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Upload progress overlay ── */
+    #uploadOverlay {
+        position: fixed; inset: 0; background: rgba(15,23,42,0.55);
+        display: none; align-items: center; justify-content: center; z-index: 1001;
+    }
+    #uploadOverlay.show { display: flex; }
+    .upload-box { background: #fff; padding: 32px 40px; border-radius: 12px; text-align: center; min-width: 280px; }
+    .upload-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .upload-box p { font-size: 13px; color: var(--text-muted); }
+    .progress-bar-wrap { height: 6px; background: #e2e8f0; border-radius: 99px; margin-top: 16px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: var(--accent-primary); border-radius: 99px; transition: width 0.2s; }
+
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .spin { animation: spin 1s linear infinite; display: inline-block; }
+
+    .empty-hint { font-size: 12px; color: var(--text-muted); padding: 8px 6px; }
 </style>
 </head>
 <body>
 
 <div class="app-container">
+
+    <!-- Topbar -->
     <div class="topbar">
         <div class="brand"><h1>RogueTeX</h1></div>
-        <div class="auth-zone" id="authZone">
-            <!-- Fully managed by syncAuthUI() — no static children needed -->
-        </div>
+        <div class="auth-zone" id="authZone"></div>
     </div>
 
+    <!-- Toolbar -->
     <div class="toolbar">
-        <input type="text" id="docTitleInput" class="title-input" value="Untitled Document" placeholder="Document title...">
-        <div style="display: flex; gap: 12px;">
-            <button class="btn btn-primary" onclick="compile()"><i data-lucide="play" style="width:18px;height:18px"></i> Compile</button>
-            <button class="btn" id="saveCloudBtn" onclick="saveToCloud()" disabled><i data-lucide="cloud" style="width:18px;height:18px"></i> Save to Cloud</button>
-            <button class="btn" onclick="downloadTeX()"><i data-lucide="download" style="width:18px;height:18px"></i> .tex</button>
-            <button class="btn btn-success" onclick="downloadPDF()"><i data-lucide="file-down" style="width:18px;height:18px"></i> PDF</button>
+        <input type="text" id="docTitleInput" class="title-input" value="Untitled Project" placeholder="Project title...">
+        <div style="display:flex;gap:8px;flex-shrink:0">
+            <button class="btn btn-primary" onclick="compile()">
+                <i data-lucide="play" style="width:16px;height:16px"></i> Compile
+            </button>
+            <button class="btn" id="saveCloudBtn" onclick="saveToCloud()" disabled>
+                <i data-lucide="cloud" style="width:16px;height:16px"></i> Save
+            </button>
+            <button class="btn" onclick="downloadTeX()">
+                <i data-lucide="download" style="width:16px;height:16px"></i> .tex
+            </button>
+            <button class="btn btn-success" onclick="downloadPDF()">
+                <i data-lucide="file-down" style="width:16px;height:16px"></i> PDF
+            </button>
         </div>
     </div>
 
     <div class="workspace">
-        <div class="sidebar">
-            <section>
-                <h3>Cloud Projects</h3>
-                <button class="btn btn-primary new-project-btn" onclick="newProject()"><i data-lucide="plus" style="width:16px;height:16px"></i> New Project</button>
-                <div id="cloudDocList">Sign in to sync your work...</div>
-            </section>
-            <section>
-                <h3>Project Assets</h3>
-                <input type="file" id="filePicker" multiple style="display:none" onchange="handleFileUpload(this)">
-                <button class="btn" style="width:100%" onclick="document.getElementById('filePicker').click()">
-                    <i data-lucide="paperclip" style="width:16px;height:16px"></i> Attach .bib / Image
-                </button>
-                <div id="assetsList" style="margin-top:12px"></div>
-            </section>
-            <section>
-                <h3>Quick Templates</h3>
-                <button class="btn" style="width:100%; margin-bottom:8px" onclick="insertTemplate('academic')">
-                    <i data-lucide="graduation-cap" style="width:16px;height:16px"></i> Academic Paper
-                </button>
-                <button class="btn" style="width:100%" onclick="insertTemplate('apa')">
-                    <i data-lucide="book-open" style="width:16px;height:16px"></i> APA Bibliography
-                </button>
-            </section>
+
+        <!-- Left: Project list sidebar -->
+        <div class="sidebar-projects">
+            <div class="sidebar-projects-header">
+                <div class="sidebar-label">Projects</div>
+                <div class="new-project-group">
+                    <button class="btn btn-primary" onclick="newBlankProject()">
+                        <i data-lucide="plus" style="width:14px;height:14px"></i> New
+                    </button>
+                    <div class="dropdown-wrapper">
+                        <button class="btn btn-primary dropdown-toggle" onclick="toggleDropdown()" title="Import project">
+                            <i data-lucide="chevron-down" style="width:14px;height:14px"></i>
+                        </button>
+                        <div class="dropdown-menu" id="importDropdown">
+                            <div class="dropdown-item" onclick="triggerImport('tex')">
+                                <i data-lucide="file-text" style="width:15px;height:15px;color:#2563eb"></i>
+                                Import .tex file
+                            </div>
+                            <div class="dropdown-item" onclick="triggerImport('folder')">
+                                <i data-lucide="folder-open" style="width:15px;height:15px;color:#d97706"></i>
+                                Import folder
+                            </div>
+                            <div class="dropdown-item" onclick="triggerImport('zip')">
+                                <i data-lucide="archive" style="width:15px;height:15px;color:#7c3aed"></i>
+                                Import .zip archive
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-projects-list" id="cloudDocList">
+                <div class="empty-hint">Sign in to sync projects...</div>
+            </div>
         </div>
 
-        <div class="main">
-            <textarea id="editor"></textarea>
+        <!-- Middle: file panel + editor -->
+        <div class="editor-area">
+
+            <!-- Per-project file panel -->
+            <div class="file-panel">
+                <div class="file-panel-header">
+                    <div class="sidebar-label">Project Files</div>
+                    <div class="file-panel-actions">
+                        <button class="btn" onclick="triggerAddFiles()" title="Add files to project">
+                            <i data-lucide="plus" style="width:13px;height:13px"></i> Add files
+                        </button>
+                    </div>
+                </div>
+                <div class="file-panel-body" id="filePanelBody">
+                    <div class="empty-hint">No files yet.</div>
+                </div>
+            </div>
+
+            <!-- Editor column -->
+            <div class="editor-column">
+                <textarea id="editor"></textarea>
+            </div>
         </div>
 
+        <!-- Right: PDF preview -->
         <div class="preview" id="previewPane">
-            <div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); flex-direction:column; gap:12px;">
-                <i data-lucide="eye" style="width:48px; height:48px; opacity:0.3;"></i>
-                <p>Preview will appear here after compilation</p>
+            <div class="preview-placeholder">
+                <i data-lucide="eye" style="width:48px;height:48px;opacity:0.25"></i>
+                <p style="font-size:14px">Compile to see the PDF preview</p>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Auth modal -->
 <div id="authModal">
     <div class="modal-content">
         <h2>Scholar Sign In</h2>
-        <input type="email" id="authEmail" placeholder="Email address">
-        <input type="password" id="authPass" placeholder="Password">
+        <input type="email" id="authEmail" placeholder="Email address" autocomplete="email">
+        <input type="password" id="authPass" placeholder="Password" autocomplete="current-password">
         <div id="authError"></div>
-        <button class="btn btn-primary" onclick="processAuth('login')">Log In</button>
-        <button class="btn" style="border:none;" onclick="processAuth('signup')">Create Account</button>
-        <button class="btn" style="border:none; color: var(--text-muted);" onclick="toggleModal(false)">Cancel</button>
+        <button class="btn btn-primary" style="width:100%;margin-top:14px;justify-content:center" onclick="processAuth('login')">Log In</button>
+        <button class="btn" style="width:100%;margin-top:8px;justify-content:center;border:none" onclick="processAuth('signup')">Create Account</button>
+        <button class="btn" style="width:100%;margin-top:8px;justify-content:center;border:none;color:var(--text-muted)" onclick="toggleModal(false)">Cancel</button>
     </div>
 </div>
 
+<!-- Confirm dialog -->
+<div id="confirmModal">
+    <div class="confirm-box">
+        <h3 id="confirmTitle">Are you sure?</h3>
+        <p id="confirmMsg"></p>
+        <div class="confirm-actions">
+            <button class="btn" onclick="resolveConfirm(false)">Cancel</button>
+            <button class="btn btn-danger" onclick="resolveConfirm(true)">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload progress overlay -->
+<div id="uploadOverlay">
+    <div class="upload-box">
+        <h3 id="uploadTitle">Importing project...</h3>
+        <p id="uploadMsg">Reading files</p>
+        <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Hidden file inputs -->
+<input type="file" id="importTexInput"    accept=".tex"                        style="display:none" onchange="handleImportTex(this)">
+<input type="file" id="importFolderInput" webkitdirectory multiple            style="display:none" onchange="handleImportFolder(this)">
+<input type="file" id="importZipInput"    accept=".zip"                        style="display:none" onchange="handleImportZip(this)">
+<input type="file" id="addFilesInput"     multiple accept=".bib,.png,.jpg,.jpeg,.pdf,.sty,.cls,.tex" style="display:none" onchange="handleAddFiles(this)">
+
+<!-- JSZip for zip import -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
 <script>
+lucide.createIcons();
+
+/* ─── Config ─────────────────────────────────────────────── */
+const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
+const SB_URL  = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+/* ─── State ───────────────────────────────────────────────── */
+let editor, currentUser, currentDocId;
+/**
+ * projectFiles: array of { name, content (base64), type ('tex'|'bib'|'img'|'other') }
+ * The .tex file opened in the editor is always tracked separately as activeTexName.
+ */
+let projectFiles  = [];   // all assets including extra .tex files
+let activeTexName = null; // which .tex is loaded in the editor
+
+/* ─── Init ────────────────────────────────────────────────── */
+window.onload = () => {
+    editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+        mode: 'stex', theme: 'monokai', lineNumbers: true,
+        lineWrapping: true, extraKeys: { 'Ctrl-S': () => saveToCloud() }
+    });
+    loadBlankTemplate('MSA Research', 'Muhammad S. Abdo');
+    checkSession();
+    lucide.createIcons();
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.dropdown-wrapper')) closeDropdown();
+    });
+};
+
+/* ─── Auth ────────────────────────────────────────────────── */
+async function checkSession() {
+    const { data: { session } } = await sb.auth.getSession();
+    syncAuthUI(session?.user ?? null);
+    sb.auth.onAuthStateChange((_, s) => syncAuthUI(s?.user ?? null));
+}
+
+function syncAuthUI(user) {
+    currentUser = user;
+    const zone    = document.getElementById('authZone');
+    const saveBtn = document.getElementById('saveCloudBtn');
+    if (user) {
+        zone.innerHTML = `<span style="font-size:13px;color:var(--text-muted)">${user.email}</span>
+            <button class="btn" onclick="signOut()">Sign Out</button>`;
+        saveBtn.disabled = false;
+        fetchProjects();
+    } else {
+        zone.innerHTML = '<button class="btn btn-primary" onclick="toggleModal(true)">Sign In</button>';
+        saveBtn.disabled = true;
+        document.getElementById('cloudDocList').innerHTML = '<div class="empty-hint">Sign in to sync projects...</div>';
+    }
+    lucide.createIcons();
+}
+
+async function signOut() { await sb.auth.signOut(); }
+
+async function processAuth(mode) {
+    const email  = document.getElementById('authEmail').value.trim();
+    const pass   = document.getElementById('authPass').value;
+    const errDiv = document.getElementById('authError');
+    errDiv.textContent = '';
+    try {
+        const res = mode === 'login'
+            ? await sb.auth.signInWithPassword({ email, password: pass })
+            : await sb.auth.signUp({ email, password: pass });
+        if (res.error) throw res.error;
+        toggleModal(false);
+    } catch (err) { errDiv.textContent = err.message; }
+}
+
+function toggleModal(show) {
+    document.getElementById('authModal').className = show ? 'show' : '';
+}
+
+/* ─── Project list ────────────────────────────────────────── */
+async function fetchProjects() {
+    const { data, error } = await sb.from('documents').select('id, title').order('created_at', { ascending: false });
+    const list = document.getElementById('cloudDocList');
+    if (error) {
+        list.innerHTML = `<div style="color:var(--accent-danger);font-size:12px;padding:8px">${error.message}</div>`;
+        return;
+    }
+    if (!data.length) {
+        list.innerHTML = '<div class="empty-hint">No projects yet.</div>';
+        return;
+    }
+    list.innerHTML = data.map(d => `
+        <div class="project-item" onclick="loadProject('${d.id}')" data-id="${d.id}">
+            <i data-lucide="folder" style="width:14px;height:14px;flex-shrink:0;color:#d97706"></i>
+            <span class="project-item-name">${d.title}</span>
+            <button class="project-item-delete" onclick="deleteProject(event,'${d.id}','${d.title.replace(/'/g,"\\'")}')">
+                <i data-lucide="trash-2" style="width:13px;height:13px"></i>
+            </button>
+        </div>`).join('');
+    lucide.createIcons();
+}
+
+/* ─── Load / save project ─────────────────────────────────── */
+async function loadProject(id) {
+    const { data, error } = await sb.from('documents').select('*').eq('id', id).single();
+    if (error || !data) { toast('Failed to load project'); return; }
+
+    currentDocId  = data.id;
+    projectFiles  = data.assets || [];
+    document.getElementById('docTitleInput').value = data.title;
+
+    // Load main .tex into editor
+    const mainTex = projectFiles.find(f => f.type === 'tex' && f.main) || projectFiles.find(f => f.type === 'tex');
+    if (mainTex) {
+        activeTexName = mainTex.name;
+        editor.setValue(atob(mainTex.content));
+    } else {
+        activeTexName = null;
+        editor.setValue(data.content || '');
+    }
+
+    renderFilePanel();
+    highlightActiveProject(id);
+}
+
+async function saveToCloud() {
+    if (!currentUser) return;
+
+    // Sync editor content back into projectFiles for the active .tex
+    syncEditorToFile();
+
+    const title   = document.getElementById('docTitleInput').value.trim() || 'Untitled Project';
+    const saveBtn = document.getElementById('saveCloudBtn');
+    saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
     lucide.createIcons();
 
-    const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
-    const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
-    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
-    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+    const payload = { user_id: currentUser.id, title, content: editor.getValue(), assets: projectFiles };
+    let res;
+    if (currentDocId) {
+        res = await sb.from('documents').update(payload).eq('id', currentDocId);
+    } else {
+        res = await sb.from('documents').insert([payload]).select();
+        if (res.data?.[0]) currentDocId = res.data[0].id;
+    }
 
-    let editor, currentUser, currentDocId, projectAssets = [];
+    if (res.error) { toast('Save failed: ' + res.error.message, true); }
+    else           { toast('Saved ✓'); fetchProjects(); highlightActiveProject(currentDocId); }
 
-    window.onload = () => {
-        editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
-            mode: 'stex', theme: 'monokai', lineNumbers: true, lineWrapping: true
-        });
-        editor.setValue(
+    saveBtn.innerHTML = '<i data-lucide="cloud"></i> Save';
+    lucide.createIcons();
+}
+
+/* ─── New blank project ───────────────────────────────────── */
+function newBlankProject() {
+    currentDocId  = null;
+    activeTexName = 'main.tex';
+    projectFiles  = [];
+    document.getElementById('docTitleInput').value = 'Untitled Project';
+    loadBlankTemplate('New Document', 'Your Name');
+    renderFilePanel();
+    highlightActiveProject(null);
+}
+
+function loadBlankTemplate(title, author) {
+    const src =
 `\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
-\\usepackage{arabxetex}
 
-\\title{MSA Research}
-\\author{Muhammad S. Abdo}
+\\title{${title}}
+\\author{${author}}
+\\date{\\today}
 
 \\begin{document}
 \\maketitle
-
-Let's roll!
 
 \\section{Introduction}
 Write here...
 
-\\end{document}`);
-        checkSession();
-        lucide.createIcons();
+\\end{document}`;
+    editor.setValue(src);
+    // Register as main.tex in projectFiles
+    upsertTexFile('main.tex', src, true);
+}
+
+/* ─── Import: .tex file ───────────────────────────────────── */
+function triggerImport(type) {
+    closeDropdown();
+    if (type === 'tex')    document.getElementById('importTexInput').click();
+    if (type === 'folder') document.getElementById('importFolderInput').click();
+    if (type === 'zip')    document.getElementById('importZipInput').click();
+}
+
+function handleImportTex(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const content = e.target.result;
+        currentDocId  = null;
+        activeTexName = file.name;
+        projectFiles  = [];
+        document.getElementById('docTitleInput').value = file.name.replace(/\.tex$/i, '');
+        editor.setValue(content);
+        upsertTexFile(file.name, content, true);
+        renderFilePanel();
+        highlightActiveProject(null);
+        toast(`Imported ${file.name}`);
     };
+    reader.readAsText(file);
+    input.value = '';
+}
 
-    async function checkSession() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        syncAuthUI(session?.user ?? null);
-        supabaseClient.auth.onAuthStateChange((_, session) => syncAuthUI(session?.user ?? null));
+/* ─── Import: folder ──────────────────────────────────────── */
+async function handleImportFolder(input) {
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    showUploadOverlay('Importing folder…', files.length);
+
+    currentDocId = null;
+    projectFiles = [];
+
+    // Use folder name as project title
+    const folderName = files[0].webkitRelativePath.split('/')[0];
+    document.getElementById('docTitleInput').value = folderName;
+
+    let mainTex = null, done = 0;
+    for (const file of files) {
+        const base64 = await fileToBase64(file);
+        const type   = classifyFile(file.name);
+        const isMain = !mainTex && type === 'tex';
+        if (isMain) mainTex = file.name;
+        projectFiles.push({ name: file.name, content: base64, type, main: isMain });
+        done++;
+        updateProgress(done, files.length);
     }
 
-    // FIX: Removed orphaned getElementById('userEmail') call.
-    // authZone.innerHTML is fully rebuilt each time, so querying a stale
-    // child element from a previous render would return null after sign-out.
-    function syncAuthUI(user) {
-        currentUser = user;
-        const authZone = document.getElementById('authZone');
-        const cloudBtn = document.getElementById('saveCloudBtn');
-        if (user) {
-            // Email is rendered directly inside the rebuilt innerHTML — no separate element needed
-            authZone.innerHTML = `<span style="color:var(--text-muted); font-size:14px;">${user.email}</span><button class="btn" onclick="signOut()">Sign Out</button>`;
-            cloudBtn.disabled = false;
-            fetchProjects();
-        } else {
-            authZone.innerHTML = '<button class="btn btn-primary" onclick="toggleModal(true)">Sign In</button>';
-            cloudBtn.disabled = true;
-            document.getElementById('cloudDocList').innerHTML = 'Sign in to sync your work...';
-        }
-        lucide.createIcons();
+    // Load main tex into editor
+    if (mainTex) {
+        activeTexName = mainTex;
+        const entry = projectFiles.find(f => f.name === mainTex);
+        editor.setValue(atob(entry.content));
     }
 
-    async function signOut() { await supabaseClient.auth.signOut(); }
+    hideUploadOverlay();
+    renderFilePanel();
+    highlightActiveProject(null);
+    toast(`Imported ${files.length} file(s) from "${folderName}"`);
+    input.value = '';
+}
 
-    async function fetchProjects() {
-        const { data, error } = await supabaseClient.from('documents').select('id, title, assets');
-        const list = document.getElementById('cloudDocList');
-        if (error) {
-            console.error("Fetch Error:", error);
-            list.innerHTML = `<div style="color:var(--accent-danger)">Error: ${error.message}</div>`;
-        } else {
-            list.innerHTML = data.map(d => `
-                <div class="doc-item" onclick="loadProject('${d.id}')" data-id="${d.id}">
-                    <span>${d.title}</span>
-                    <i data-lucide="chevron-right" style="width:14px"></i>
-                </div>`).join('') || '<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No projects saved yet.</div>';
-            lucide.createIcons();
-        }
-    }
+/* ─── Import: ZIP ─────────────────────────────────────────── */
+async function handleImportZip(input) {
+    const file = input.files[0];
+    if (!file) return;
+    showUploadOverlay('Extracting ZIP…', 100);
 
-    async function saveToCloud() {
-        if (!currentUser) return;
-        const title = document.getElementById('docTitleInput').value;
-        const saveBtn = document.getElementById('saveCloudBtn');
-        saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Syncing...';
-        lucide.createIcons();
+    try {
+        const zip     = await JSZip.loadAsync(file);
+        const entries = Object.values(zip.files).filter(f => !f.dir);
 
-        const payload = {
-            user_id: currentUser.id,
-            title: title,
-            content: editor.getValue(),
-            assets: projectAssets
-        };
-
-        let res;
-        if (currentDocId) {
-            res = await supabaseClient.from('documents').update(payload).eq('id', currentDocId);
-        } else {
-            res = await supabaseClient.from('documents').insert([payload]).select();
-            if (res.data && res.data[0]) currentDocId = res.data[0].id;
-        }
-
-        if (res.error) {
-            console.error("Save Error:", res.error);
-            alert('Save failed: ' + res.error.message);
-        } else {
-            saveBtn.innerHTML = '<i data-lucide="check"></i> Saved';
-            lucide.createIcons();
-            setTimeout(() => {
-                saveBtn.innerHTML = '<i data-lucide="cloud"></i> Save to Cloud';
-                lucide.createIcons();
-            }, 2000);
-            fetchProjects();
-        }
-        lucide.createIcons();
-    }
-
-    async function loadProject(id) {
-        const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single();
-        if (data) {
-            editor.setValue(data.content);
-            document.getElementById('docTitleInput').value = data.title;
-            currentDocId = data.id;
-            projectAssets = data.assets || [];
-            renderAssets();
-            document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
-            document.querySelector(`.doc-item[data-id="${id}"]`)?.classList.add('active');
-        }
-    }
-
-    function newProject() {
-        editor.setValue(
-`\\documentclass[12pt]{article}
-\\usepackage[utf8]{inputenc}
-
-\\title{New Document}
-\\author{Your Name}
-
-\\begin{document}
-\\maketitle
-
-\\section{Introduction}
-Start writing here...
-
-\\end{document}`);
-        document.getElementById('docTitleInput').value = 'Untitled Document';
         currentDocId = null;
-        projectAssets = [];
-        renderAssets();
-        document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
-    }
+        projectFiles = [];
+        document.getElementById('docTitleInput').value = file.name.replace(/\.zip$/i, '');
 
-    async function handleFileUpload(input) {
-        for (const file of input.files) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const base64 = e.target.result.split(',')[1];
-                projectAssets.push({ name: file.name, content: base64 });
-                renderAssets();
-            };
-            reader.readAsDataURL(file);
-        }
-        input.value = '';
-    }
-
-    function renderAssets() {
-        const list = document.getElementById('assetsList');
-        if (projectAssets.length === 0) {
-            list.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No files attached yet.</div>';
-        } else {
-            list.innerHTML = projectAssets.map((a, i) => `
-                <div class="file-item">
-                    <span>${a.name}</span>
-                    <button class="file-remove-btn" onclick="removeAsset(${i})">
-                        <i data-lucide="trash-2" style="width:14px;height:14px"></i>
-                    </button>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-    }
-
-    function removeAsset(idx) {
-        projectAssets.splice(idx, 1);
-        renderAssets();
-    }
-
-    async function processAuth(mode) {
-        const email = document.getElementById('authEmail').value;
-        const pass = document.getElementById('authPass').value;
-        const errDiv = document.getElementById('authError');
-        errDiv.textContent = '';
-        try {
-            let res;
-            if (mode === 'login') {
-                res = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-            } else {
-                res = await supabaseClient.auth.signUp({ email, password: pass });
-            }
-            if (res.error) throw res.error;
-            toggleModal(false);
-        } catch (err) {
-            errDiv.textContent = err.message;
-        }
-    }
-
-    function toggleModal(show) {
-        document.getElementById('authModal').className = show ? 'show' : '';
-    }
-
-    async function compile() {
-        const compileBtn = document.querySelector('.btn-primary');
-        compileBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Compiling...';
-        lucide.createIcons();
-
-        try {
-            const res = await fetch(COMPILE_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    latex: editor.getValue(),
-                    files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content }))
-                })
-            });
-
-            const data = await res.json();
-            if (data.pdf) {
-                document.getElementById('previewPane').innerHTML =
-                    `<embed id="pdfPreview" src="data:application/pdf;base64,${data.pdf}" type="application/pdf" width="100%" height="100%">`;
-            } else if (data.error) {
-                document.getElementById('previewPane').innerHTML =
-                    `<div style="padding:20px; color:var(--accent-danger)"><h3>Compilation Error</h3><pre style="white-space:pre-wrap; margin-top:12px;">${data.log || data.error}</pre></div>`;
-            }
-        } catch (err) {
-            document.getElementById('previewPane').innerHTML =
-                `<div style="padding:20px; color:var(--accent-danger)"><h3>Network Error</h3><p>${err.message}</p></div>`;
+        let mainTex = null, done = 0;
+        for (const entry of entries) {
+            const isBinary = isBinaryPath(entry.name);
+            const data     = isBinary
+                ? await entry.async('base64')
+                : btoa(unescape(encodeURIComponent(await entry.async('string'))));
+            const type   = classifyFile(entry.name);
+            const isMain = !mainTex && type === 'tex';
+            if (isMain) mainTex = entry.name;
+            projectFiles.push({ name: entry.name, content: data, type, main: isMain });
+            done++;
+            updateProgress(done, entries.length);
         }
 
-        compileBtn.innerHTML = '<i data-lucide="play"></i> Compile';
-        lucide.createIcons();
+        if (mainTex) {
+            activeTexName = mainTex;
+            const e2 = projectFiles.find(f => f.name === mainTex);
+            editor.setValue(atob(e2.content));
+        }
+
+        hideUploadOverlay();
+        renderFilePanel();
+        highlightActiveProject(null);
+        toast(`Extracted ${entries.length} file(s) from "${file.name}"`);
+    } catch (err) {
+        hideUploadOverlay();
+        toast('ZIP error: ' + err.message, true);
+    }
+    input.value = '';
+}
+
+/* ─── Add files to existing project ──────────────────────── */
+function triggerAddFiles() {
+    document.getElementById('addFilesInput').click();
+}
+
+async function handleAddFiles(input) {
+    const files = Array.from(input.files);
+    for (const file of files) {
+        const base64 = await fileToBase64(file);
+        const type   = classifyFile(file.name);
+        // Replace if same name already exists
+        const idx = projectFiles.findIndex(f => f.name === file.name);
+        const entry = { name: file.name, content: base64, type, main: false };
+        if (idx >= 0) projectFiles[idx] = entry;
+        else          projectFiles.push(entry);
+
+        // If it's a .tex file, ask to open it in the editor
+        if (type === 'tex') openTexInEditor(file.name);
+    }
+    renderFilePanel();
+    toast(`Added ${files.length} file(s)`);
+    input.value = '';
+}
+
+/* ─── File panel render ───────────────────────────────────── */
+function renderFilePanel() {
+    const body = document.getElementById('filePanelBody');
+    const texFiles   = projectFiles.filter(f => f.type === 'tex');
+    const bibFiles   = projectFiles.filter(f => f.type === 'bib');
+    const imgFiles   = projectFiles.filter(f => f.type === 'img');
+    const otherFiles = projectFiles.filter(f => f.type === 'other');
+
+    if (!projectFiles.length) {
+        body.innerHTML = '<div class="empty-hint">No files yet. Use "Add files" to attach .bib, images, or extra .tex files.</div>';
+        return;
     }
 
-    function downloadTeX() {
-        const blob = new Blob([editor.getValue()], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = (document.getElementById('docTitleInput').value || 'document') + '.tex';
-        a.click();
-    }
+    let html = '';
+    if (texFiles.length)   html += fileGroup('TeX Sources',  texFiles,   'file-text',  'icon-tex');
+    if (bibFiles.length)   html += fileGroup('Bibliography', bibFiles,   'book',       'icon-bib');
+    if (imgFiles.length)   html += fileGroup('Images',       imgFiles,   'image',      'icon-img');
+    if (otherFiles.length) html += fileGroup('Other',        otherFiles, 'paperclip',  'icon-other');
+    body.innerHTML = html;
+    lucide.createIcons();
+}
 
-    function downloadPDF() {
-        const embed = document.getElementById('pdfPreview');
-        if (!embed) { alert('Please compile first to generate PDF'); return; }
-        const pdfData = embed.src.split(',')[1];
-        const blob = new Blob([Uint8Array.from(atob(pdfData), c => c.charCodeAt(0))], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = (document.getElementById('docTitleInput').value || 'document') + '.pdf';
-        a.click();
-    }
+function fileGroup(label, files, iconName, iconClass) {
+    const items = files.map(f => {
+        const isActive = f.name === activeTexName;
+        const clickable = f.type === 'tex' ? `onclick="openTexInEditor('${f.name}')"` : '';
+        return `
+        <div class="file-entry ${isActive ? 'active-file' : ''}" ${clickable} title="${f.name}">
+            <i data-lucide="${iconName}" style="width:13px;height:13px;flex-shrink:0" class="${iconClass}"></i>
+            <span class="file-entry-name">${f.name}${f.main ? ' <span style="font-size:10px;color:var(--accent-primary)">[main]</span>' : ''}</span>
+            <button class="file-entry-remove" onclick="removeProjectFile(event,'${f.name}')" title="Remove">
+                <i data-lucide="x" style="width:12px;height:12px"></i>
+            </button>
+        </div>`;
+    }).join('');
+    return `<div class="file-group">
+        <div class="file-group-label">
+            <i data-lucide="${iconName}" style="width:11px;height:11px"></i>${label}
+        </div>${items}</div>`;
+}
 
-    function insertTemplate(type) {
-        if (type === 'academic') {
-            editor.setValue(
+/* ─── File actions ────────────────────────────────────────── */
+function openTexInEditor(name) {
+    // Save current editor content first
+    syncEditorToFile();
+    const entry = projectFiles.find(f => f.name === name);
+    if (!entry) return;
+    activeTexName = name;
+    editor.setValue(atob(entry.content));
+    renderFilePanel();
+}
+
+function removeProjectFile(event, name) {
+    event.stopPropagation();
+    const idx = projectFiles.findIndex(f => f.name === name);
+    if (idx < 0) return;
+    projectFiles.splice(idx, 1);
+    if (name === activeTexName) {
+        activeTexName = null;
+        editor.setValue('');
+    }
+    renderFilePanel();
+    toast(`Removed ${name}`);
+}
+
+/* ─── Delete project (cloud) ──────────────────────────────── */
+async function deleteProject(event, id, title) {
+    event.stopPropagation();
+    const confirmed = await confirm(`Delete "${title}"?`, 'This project will be permanently removed from the cloud.');
+    if (!confirmed) return;
+    const { error } = await sb.from('documents').delete().eq('id', id);
+    if (error) { toast('Delete failed: ' + error.message, true); return; }
+    if (currentDocId === id) newBlankProject();
+    fetchProjects();
+    toast(`Deleted "${title}"`);
+}
+
+/* ─── Templates ───────────────────────────────────────────── */
+function insertTemplate(type) {
+    let src = '';
+    if (type === 'academic') {
+        src =
 `\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{amsmath}
@@ -411,23 +753,16 @@ Your abstract here.
 \\end{abstract}
 
 \\section{Introduction}
-Introduction text...
-
 \\section{Methodology}
-Methodology description...
-
 \\section{Results}
-Results and analysis...
-
 \\section{Conclusion}
-Concluding remarks...
 
 \\bibliographystyle{plain}
 \\bibliography{references}
 
-\\end{document}`);
-        } else if (type === 'apa') {
-            editor.setValue(
+\\end{document}`;
+    } else if (type === 'apa') {
+        src =
 `\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{apacite}
@@ -445,10 +780,156 @@ Text with citations \\cite{author2020}.
 \\bibliographystyle{apacite}
 \\bibliography{references}
 
-\\end{document}`);
-        }
+\\end{document}`;
     }
-</script>
+    editor.setValue(src);
+    upsertTexFile(activeTexName || 'main.tex', src, true);
+    renderFilePanel();
+}
 
+/* ─── Compile ─────────────────────────────────────────────── */
+async function compile() {
+    syncEditorToFile();
+    const compileBtn = document.querySelector('.btn-primary');
+    compileBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Compiling…';
+    lucide.createIcons();
+
+    try {
+        const res = await fetch(COMPILE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                latex: editor.getValue(),
+                files: projectFiles.filter(f => f.type !== 'tex' || f.name !== activeTexName)
+                    .map(f => ({ path: f.name, contentBase64: f.content }))
+            })
+        });
+        const data = await res.json();
+        if (data.pdf) {
+            document.getElementById('previewPane').innerHTML =
+                `<embed id="pdfPreview" src="data:application/pdf;base64,${data.pdf}" type="application/pdf" width="100%" height="100%">`;
+        } else {
+            document.getElementById('previewPane').innerHTML =
+                `<div style="padding:20px;color:var(--accent-danger)"><h3>Compilation Error</h3><pre style="white-space:pre-wrap;margin-top:12px;font-size:13px">${data.log || data.error}</pre></div>`;
+        }
+    } catch (err) {
+        document.getElementById('previewPane').innerHTML =
+            `<div style="padding:20px;color:var(--accent-danger)"><h3>Network Error</h3><p>${err.message}</p></div>`;
+    }
+    compileBtn.innerHTML = '<i data-lucide="play"></i> Compile';
+    lucide.createIcons();
+}
+
+/* ─── Download ────────────────────────────────────────────── */
+function downloadTeX() {
+    const name = (document.getElementById('docTitleInput').value || 'document') + '.tex';
+    const blob = new Blob([editor.getValue()], { type: 'text/plain' });
+    triggerDownload(URL.createObjectURL(blob), name);
+}
+
+function downloadPDF() {
+    const embed = document.getElementById('pdfPreview');
+    if (!embed) { toast('Compile first to generate PDF', true); return; }
+    const blob = new Blob([Uint8Array.from(atob(embed.src.split(',')[1]), c => c.charCodeAt(0))], { type: 'application/pdf' });
+    triggerDownload(URL.createObjectURL(blob), (document.getElementById('docTitleInput').value || 'document') + '.pdf');
+}
+
+function triggerDownload(url, filename) {
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+}
+
+/* ─── Helpers ─────────────────────────────────────────────── */
+function classifyFile(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    if (['tex'].includes(ext))                          return 'tex';
+    if (['bib'].includes(ext))                          return 'bib';
+    if (['png','jpg','jpeg','gif','svg','eps'].includes(ext)) return 'img';
+    return 'other';
+}
+
+function isBinaryPath(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    return ['png','jpg','jpeg','gif','pdf','eps','zip'].includes(ext);
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload  = e => resolve(e.target.result.split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+    });
+}
+
+// Keep projectFiles in sync with current editor value for the active .tex
+function syncEditorToFile() {
+    if (!activeTexName) return;
+    const src = editor.getValue();
+    upsertTexFile(activeTexName, src, true);
+}
+
+function upsertTexFile(name, plainText, isMain) {
+    const b64  = btoa(unescape(encodeURIComponent(plainText)));
+    const idx  = projectFiles.findIndex(f => f.name === name);
+    const entry = { name, content: b64, type: 'tex', main: !!isMain };
+    if (idx >= 0) projectFiles[idx] = entry;
+    else          projectFiles.push(entry);
+    activeTexName = name;
+}
+
+function highlightActiveProject(id) {
+    document.querySelectorAll('.project-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === id);
+    });
+}
+
+/* ─── Dropdown ────────────────────────────────────────────── */
+function toggleDropdown() {
+    document.getElementById('importDropdown').classList.toggle('open');
+}
+function closeDropdown() {
+    document.getElementById('importDropdown').classList.remove('open');
+}
+
+/* ─── Toast ───────────────────────────────────────────────── */
+let toastTimer;
+function toast(msg, isError = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = isError ? '#dc2626' : '#1e293b';
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ─── Confirm dialog ──────────────────────────────────────── */
+let confirmResolve;
+function confirm(title, msg) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent   = msg;
+    document.getElementById('confirmModal').classList.add('show');
+    return new Promise(res => confirmResolve = res);
+}
+function resolveConfirm(val) {
+    document.getElementById('confirmModal').classList.remove('show');
+    if (confirmResolve) { confirmResolve(val); confirmResolve = null; }
+}
+
+/* ─── Upload progress overlay ─────────────────────────────── */
+function showUploadOverlay(title, total) {
+    document.getElementById('uploadTitle').textContent = title;
+    document.getElementById('uploadMsg').textContent   = `0 / ${total} files`;
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('uploadOverlay').classList.add('show');
+}
+function updateProgress(done, total) {
+    document.getElementById('uploadMsg').textContent   = `${done} / ${total} files`;
+    document.getElementById('progressFill').style.width = Math.round(done / total * 100) + '%';
+}
+function hideUploadOverlay() {
+    document.getElementById('uploadOverlay').classList.remove('show');
+}
+</script>
 </body>
 </html>
