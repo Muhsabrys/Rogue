@@ -308,6 +308,5 @@
     function downloadPDF() { const a = document.createElement('a'); a.href = `data:application/pdf;base64,${window.latestPdfData}`; a.download = document.getElementById('docTitleInput').value + ".pdf"; a.click(); }
     function downloadTex() { const blob = new Blob([editor.getValue()], {type: 'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = document.getElementById('docTitleInput').value + ".tex"; a.click(); }
 </script>
-</script>
 </body>
 </html>
