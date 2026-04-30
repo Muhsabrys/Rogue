@@ -6,21 +6,14 @@
     <title>RogueTeX Cloud</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/stex/stex.min.js"></script>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/search.min.js"></script>
-
     <script src="https://unpkg.com/lucide@latest"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -28,633 +21,315 @@
             --bg-body: #f1f5f9;
             --bg-surface: #ffffff;
             --bg-panel: #f8fafc;
-            --bg-hover: #e2e8f0;
-            
             --border-light: #cbd5e1;
-            --border-focus: #94a3b8;
-            
             --text-main: #0f172a;
-            --text-muted: #334155;
-            --text-light: #475569;
-            
+            --text-muted: #475569;
             --accent-primary: #2563eb;
-            --accent-primary-hover: #1d4ed8;
             --accent-success: #059669;
             --accent-danger: #dc2626;
-            
-            --status-idle-bg: #e2e8f0; --status-idle-text: #334155;
-            --status-compiling-bg: #fef3c7; --status-compiling-text: #b45309;
-            --status-success-bg: #d1fae5; --status-success-text: #047857;
-            --status-error-bg: #fee2e2; --status-error-text: #b91c1c;
-
             --radius-md: 6px;
-            --radius-lg: 10px;
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.15);
-            
-            --font-sans: 'Inter', system-ui, sans-serif;
-            --font-mono: 'JetBrains Mono', Consolas, monospace;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: var(--font-sans);
-            font-size: 16px;
-            color: var(--text-main);
-            background-color: var(--bg-body);
-            height: 100vh;
-            display: flex;
-            padding: 0;
-            overflow: hidden;
-        }
+        body { font-family: var(--font-sans); font-size: 16px; color: var(--text-main); background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
 
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-            background: var(--bg-surface);
-            overflow: hidden;
-        }
+        .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
 
-        /* Topbar */
+        /* Topbar - High Visibility */
         .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 24px;
-            border-bottom: 2px solid var(--border-light);
-            background: var(--bg-surface);
-            z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light);
         }
-
-        .brand-section { display: flex; align-items: center; gap: 16px; }
-        
-        .brand-text h1 { font-size: 22px; font-weight: 700; color: var(--text-main); }
-        .brand-text p { font-size: 14px; color: var(--text-muted); }
-
-        .auth-section { display: flex; align-items: center; gap: 16px; }
-        .user-email { font-size: 14px; font-weight: 600; color: var(--text-muted); display: none; }
-
-        .status-badge {
-            display: flex; align-items: center; gap: 8px;
-            padding: 8px 16px; border-radius: 4px;
-            font-size: 14px; font-weight: 600;
-        }
-        .status-badge.idle { background: var(--status-idle-bg); color: var(--status-idle-text); }
-        .status-badge.compiling { background: var(--status-compiling-bg); color: var(--status-compiling-text); }
-        .status-badge.success { background: var(--status-success-bg); color: var(--status-success-text); }
-        .status-badge.error { background: var(--status-error-bg); color: var(--status-error-text); }
+        .brand h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
+        .auth-zone { display: flex; align-items: center; gap: 16px; font-weight: 600; }
 
         /* Toolbar */
         .toolbar {
             display: flex; justify-content: space-between; align-items: center;
             padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light);
-            gap: 16px;
+            gap: 12px;
         }
-        .toolbar-group { display: flex; align-items: center; gap: 16px; }
-
         .btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 10px 20px; font-family: inherit; font-size: 15px; font-weight: 600;
-            border-radius: var(--radius-md); border: 1px solid transparent;
-            cursor: pointer; transition: 0.2s; white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+            font-size: 15px; font-weight: 600; border-radius: var(--radius-md);
+            border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s;
         }
-        .btn i { width: 18px; height: 18px; }
+        .btn-primary { background: var(--accent-primary); color: #fff; border: none; }
+        .btn-success { background: var(--accent-success); color: #fff; border: none; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
-        .btn-primary { background: var(--accent-primary); color: #fff; }
-        .btn-primary:hover:not(:disabled) { background: var(--accent-primary-hover); }
-        .btn-success { background: var(--accent-success); color: #fff; }
-        .btn-outline { background: var(--bg-surface); border-color: var(--border-light); color: var(--text-main); }
-        .btn-outline:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-focus); }
 
-        /* Document Title Input */
-        .doc-title-input {
-            font-size: 16px; font-family: inherit; font-weight: 600;
-            padding: 8px 12px; border: 1px solid var(--border-light);
-            border-radius: var(--radius-md); width: 250px; background: var(--bg-surface);
-            color: var(--text-main);
-        }
-        .doc-title-input:focus { outline: none; border-color: var(--accent-primary); }
+        /* Workspace Layout */
+        .workspace { display: flex; flex: 1; min-height: 0; }
 
-        /* Workspace */
-        .workspace { display: flex; flex: 1; min-height: 0; position: relative; }
-
-        /* Sidebar */
+        /* Sidebar - Managed Sections */
         .sidebar {
-            width: 320px; display: flex; flex-direction: column;
-            background: var(--bg-panel); border-right: 2px solid var(--border-light);
+            width: 320px; background: var(--bg-panel); border-right: 2px solid var(--border-light);
+            display: flex; flex-direction: column; padding: 20px; gap: 28px; overflow-y: auto;
         }
-        .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-light); }
-        .sidebar-header h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-        .sidebar-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 24px; }
-
-        /* Cloud Documents List */
-        .cloud-doc-item {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-light);
-            border-radius: var(--radius-md); margin-bottom: 8px; cursor: pointer; transition: 0.2s;
+        .sidebar-section h3 {
+            font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px;
+            color: var(--text-muted); margin-bottom: 12px; padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-light);
         }
-        .cloud-doc-item:hover { border-color: var(--accent-primary); box-shadow: var(--shadow-md); }
-        .cloud-doc-item.active { border-color: var(--accent-primary); border-width: 2px; }
-        .doc-info { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-        .doc-name { font-weight: 600; font-size: 15px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .doc-date { font-size: 12px; color: var(--text-light); }
         
-        /* Modals */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.7); display: none; align-items: center; justify-content: center; z-index: 1000;
+        .doc-item, .file-item {
+            padding: 12px; background: #fff; border: 1px solid var(--border-light);
+            border-radius: var(--radius-md); margin-bottom: 8px; font-size: 14px;
+            cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: space-between;
         }
-        .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: var(--bg-surface); padding: 32px; border-radius: var(--radius-lg);
-            width: 100%; max-width: 400px; box-shadow: var(--shadow-lg);
-        }
-        .modal-box h3 { font-size: 20px; font-weight: 700; margin-bottom: 24px; color: var(--text-main); }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); }
-        .form-group input {
-            width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--border-light);
-            border-radius: var(--radius-md);
-        }
-        .form-group input:focus { outline: none; border-color: var(--accent-primary); }
-        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
-        .modal-actions .btn { flex: 1; }
-        #authError { color: var(--accent-danger); font-size: 14px; margin-top: 12px; font-weight: 500; }
+        .doc-item:hover, .file-item:hover { border-color: var(--accent-primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
         /* Panes */
-        .editor-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #272822; }
-        .preview-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-surface); }
-        .pane-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 16px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light);
-            font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;
-        }
-        
-        .CodeMirror { height: 100% !important; font-family: var(--font-mono) !important; font-size: 16px !important; line-height: 1.6 !important; }
-        .CodeMirror-scroll { padding: 16px 0; }
-        
-        .pdf-frame { width: 100%; height: 100%; border: none; }
-        .resizer { width: 6px; background: var(--border-light); cursor: col-resize; transition: 0.2s; z-index: 5; }
-        .resizer:hover, .resizer.active { background: var(--accent-primary); }
-        
-        .placeholder-state {
-            position: absolute; inset: 0; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; padding: 32px; text-align: center; color: var(--text-muted);
-        }
-        .placeholder-state i { width: 48px; height: 48px; color: var(--border-focus); margin-bottom: 16px; }
-        .placeholder-state h3 { font-size: 18px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+        .editor-pane { flex: 1; background: #272822; min-width: 0; }
+        .preview-pane { flex: 1; background: #fff; border-left: 2px solid var(--border-light); min-width: 0; }
+        .CodeMirror { height: 100% !important; font-size: 16px; line-height: 1.6; }
+
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* Auth Modal */
+        .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal.active { display: flex; }
+        .modal-content { background: #fff; padding: 32px; border-radius: 12px; width: 380px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
+        .modal-content input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border-light); border-radius: 6px; font-size: 16px; }
+
+        .file-remove-btn { color: var(--accent-danger); border: none; background: transparent; cursor: pointer; padding: 4px; }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <header class="topbar">
-            <div class="brand-section">
-                <div class="brand-text">
-                    <h1>RogueTeX</h1>
-                    <p>Cloud Workspace</p>
-                </div>
-            </div>
-            
-            <div class="auth-section">
-                <span class="user-email" id="userEmailDisplay"></span>
-                <button class="btn btn-outline" id="loginBtn" onclick="openAuthModal()">Sign In</button>
-                <button class="btn btn-outline" id="logoutBtn" onclick="signOut()" style="display: none;">Sign Out</button>
-                <div class="status-badge idle" id="statusBadge">
-                    <i data-lucide="check-circle" id="statusIcon"></i>
-                    <span id="statusText">Ready</span>
-                </div>
-            </div>
-        </header>
-
-        <nav class="toolbar">
-            <div class="toolbar-group">
-                <button class="btn btn-primary" id="compileBtn" onclick="compileLatex()">
-                    <i data-lucide="play"></i> Compile
-                </button>
-                
-                <input type="text" id="documentTitle" class="doc-title-input" placeholder="Document Title" value="Untitled Document">
-                
-                <button class="btn btn-outline" id="saveCloudBtn" onclick="saveToCloud()" disabled title="Sign in to save to cloud">
-                    <i data-lucide="cloud"></i> Save to Cloud
-                </button>
-                
-                <button class="btn btn-outline" onclick="loadTemplate('minimal')">
-                    <i data-lucide="file-plus"></i> New Blank
-                </button>
-            </div>
-
-            <div class="toolbar-group">
-                <button class="btn btn-outline" onclick="downloadTex()">
-                    <i data-lucide="download"></i> Save .tex
-                </button>
-                <button class="btn btn-success" id="downloadPdfBtn" onclick="downloadPDF()" disabled>
-                    <i data-lucide="file-down"></i> Download PDF
-                </button>
-            </div>
-        </nav>
-
-        <main class="workspace" id="workspace">
-            
-            <aside class="sidebar" id="sidebar">
-                <div class="sidebar-header">
-                    <h2>Cloud Documents</h2>
-                </div>
-                <div class="sidebar-content" id="cloudDocList">
-                    <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0;">
-                        Sign in to view and save documents to the cloud.
-                    </div>
-                </div>
-            </aside>
-
-            <section class="editor-pane" id="editorPane">
-                <div class="pane-header" style="background: #1e1f1c; border-bottom: 1px solid #333; color: #8f908a;">
-                    <span>Editor</span>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-outline" style="padding: 4px; background: transparent; border: none; cursor: pointer; color: #8f908a;" onclick="editor.execCommand('find')" title="Find (Ctrl+F)">
-                            <i data-lucide="search" style="width: 16px; height: 16px;"></i>
-                        </button>
-                    </div>
-                </div>
-                <textarea id="latexEditor"></textarea>
-            </section>
-
-            <div class="resizer" id="resizer"></div>
-
-            <section class="preview-pane" id="previewPane">
-                <div class="pane-header">
-                    <span>PDF Preview</span>
-                </div>
-                <div style="flex: 1; position: relative; background: #e2e8f0; overflow: hidden;" id="pdfViewer">
-                    <div class="placeholder-state">
-                        <i data-lucide="file-check-2"></i>
-                        <h3>Document Ready</h3>
-                        <p>Write your LaTeX code and click Compile to view the PDF.</p>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <div class="modal-overlay" id="authModal">
-        <div class="modal-box">
-            <h3>Sign In to RogueTeX</h3>
-            <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" id="authEmail" placeholder="scholar@university.edu">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="authPassword" placeholder="••••••••">
-            </div>
-            <div id="authError"></div>
-            <div class="modal-actions">
-                <button class="btn btn-outline" onclick="closeAuthModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="handleAuth('signup')">Sign Up</button>
-                <button class="btn btn-success" onclick="handleAuth('login')">Log In</button>
-            </div>
+<div class="app-container">
+    <header class="topbar">
+        <div class="brand"><h1>RogueTeX</h1></div>
+        <div class="auth-zone">
+            <span id="userEmailDisplay" style="color: var(--text-muted); font-size: 14px;"></span>
+            <button class="btn" id="loginBtn" onclick="toggleModal(true)">Sign In</button>
+            <button class="btn" id="logoutBtn" onclick="signOut()" style="display:none">Sign Out</button>
         </div>
-    </div>
+    </header>
 
-    <script>
-lucide.createIcons();
+    <nav class="toolbar">
+        <div style="display:flex; gap:12px; align-items: center;">
+            <button class="btn btn-primary" onclick="compileLatex()"><i data-lucide="play"></i> Compile</button>
+            <input type="text" id="docTitleInput" class="btn" style="width:240px; cursor: text; text-align: left;" value="Untitled Document">
+            <button class="btn" id="saveCloudBtn" onclick="saveToCloud()" disabled title="Sign in to save projects"><i data-lucide="cloud"></i> Save to Cloud</button>
+        </div>
+        <div style="display:flex; gap:12px;">
+            <button class="btn" onclick="downloadTex()"><i data-lucide="file-code"></i> .tex</button>
+            <button class="btn btn-success" id="downloadPdfBtn" onclick="downloadPDF()" disabled><i data-lucide="download"></i> PDF</button>
+        </div>
+    </nav>
 
-        // ==========================================
-        // 1. CONFIGURATION (ENTER YOUR URLS HERE)
-        // ==========================================
-        const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile'; 
-        const SUPABASE_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
-        // ==========================================
-
-        // FIX: Changed variable name to supabaseClient to prevent collision
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        let editor = null;
-        let currentUser = null;
-        let currentDocumentId = null; 
-        let currentPDF = null;
-        let currentPDFUrl = null;
-
-        // Initialize App
-        window.addEventListener('DOMContentLoaded', () => {
-            editor = CodeMirror.fromTextArea(document.getElementById('latexEditor'), {
-                mode: 'stex', theme: 'monokai', lineNumbers: true, lineWrapping: true, indentUnit: 4
-            });
-
-            setupResizer();
-            checkUser();
-            
-            // Auto-save strictly to local storage for Guest Mode
-            const backup = localStorage.getItem('roguetex-local-backup');
-            if(backup) {
-                editor.setValue(backup);
-            } else {
-                loadTemplate('minimal');
-            }
-
-            editor.on('change', () => {
-                localStorage.setItem('roguetex-local-backup', editor.getValue());
-            });
-        });
-
-        // --- Authentication Logic ---
-        async function checkUser() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            updateAuthUI(session?.user || null);
-
-            supabaseClient.auth.onAuthStateChange((_event, session) => {
-                updateAuthUI(session?.user || null);
-            });
-        }
-
-        function updateAuthUI(user) {
-            currentUser = user;
-            const loginBtn = document.getElementById('loginBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const emailDisplay = document.getElementById('userEmailDisplay');
-            const saveBtn = document.getElementById('saveCloudBtn');
-            const cloudList = document.getElementById('cloudDocList');
-
-            if (user) {
-                loginBtn.style.display = 'none';
-                logoutBtn.style.display = 'inline-flex';
-                emailDisplay.style.display = 'block';
-                emailDisplay.textContent = user.email;
-                saveBtn.disabled = false;
-                saveBtn.title = "Save document to cloud";
-                fetchCloudDocuments();
-            } else {
-                loginBtn.style.display = 'inline-flex';
-                logoutBtn.style.display = 'none';
-                emailDisplay.style.display = 'none';
-                saveBtn.disabled = true;
-                saveBtn.title = "Sign in to save to cloud";
-                currentDocumentId = null;
-                
-                // Enhanced Guest Mode Messaging
-                cloudList.innerHTML = `
-                    <div style="padding: 16px; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); line-height: 1.5;">
-                        <span style="display: block; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Guest Workspace Active</span>
-                        <span style="font-size: 14px; color: var(--text-muted);">You can write, compile, and download files right now. Your work is automatically saved to this browser.</span>
-                        <div style="height: 12px;"></div>
-                        <span style="font-size: 14px; color: var(--text-muted);">Sign in to save documents permanently and access them across devices.</span>
-                    </div>
-                `;
-            }
-        }
-
-        function openAuthModal() {
-            document.getElementById('authError').textContent = '';
-            document.getElementById('authModal').classList.add('active');
-        }
-
-        function closeAuthModal() {
-            document.getElementById('authModal').classList.remove('active');
-        }
-
-        async function handleAuth(action) {
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
-            const errorDiv = document.getElementById('authError');
-            
-            if (!email || !password) {
-                errorDiv.textContent = "Email and password required.";
-                return;
-            }
-
-            errorDiv.textContent = "Processing...";
-            let result;
-
-            if (action === 'signup') {
-                result = await supabaseClient.auth.signUp({ email, password });
-                if(!result.error) errorDiv.textContent = "Account created! You may now log in.";
-            } else {
-                result = await supabaseClient.auth.signInWithPassword({ email, password });
-            }
-
-            if (result.error) {
-                errorDiv.textContent = result.error.message;
-            } else if (action === 'login') {
-                closeAuthModal();
-            }
-        }
-
-        async function signOut() {
-            await supabaseClient.auth.signOut();
-        }
-
-        // --- Database Logic ---
-        async function fetchCloudDocuments() {
-            if (!currentUser) return;
-            
-            const listContainer = document.getElementById('cloudDocList');
-            listContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0;">Loading documents...</div>';
-
-            const { data, error } = await supabaseClient
-                .from('documents')
-                .select('id, title, updated_at')
-                .order('updated_at', { ascending: false });
-
-            if (error) {
-                listContainer.innerHTML = '<div style="text-align: center; color: var(--accent-danger); font-size: 14px; padding: 24px 0;">Error loading documents.</div>';
-                return;
-            }
-
-            if (data.length === 0) {
-                listContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0;">No documents found in cloud.</div>';
-                return;
-            }
-
-            listContainer.innerHTML = data.map(doc => `
-                <div class="cloud-doc-item ${doc.id === currentDocumentId ? 'active' : ''}" onclick="loadCloudDocument('${doc.id}')">
-                    <div class="doc-info">
-                        <span class="doc-name">${doc.title || 'Untitled Document'}</span>
-                        <span class="doc-date">Last updated: ${new Date(doc.updated_at).toLocaleDateString()}</span>
-                    </div>
+    <main class="workspace">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3>Cloud Projects</h3>
+                <div id="cloudDocList" style="font-size: 14px; color: var(--text-muted);">
+                    Sign in to sync your work...
                 </div>
-            `).join('');
-        }
-
-        async function saveToCloud() {
-            if (!currentUser) return;
+            </div>
             
-            const saveBtn = document.getElementById('saveCloudBtn');
-            const titleInput = document.getElementById('documentTitle').value || 'Untitled Document';
-            const content = editor.getValue();
-            
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Saving...';
+            <div class="sidebar-section">
+                <h3>Project Assets</h3>
+                <input type="file" id="filePicker" multiple style="display:none" onchange="handleFileUpload(this)">
+                <button class="btn" style="width:100%; margin-bottom:12px;" onclick="document.getElementById('filePicker').click()">
+                    <i data-lucide="paperclip"></i> Attach .bib / Image
+                </button>
+                <div id="fileListDisplay"></div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Quick Templates</h3>
+                <button class="btn" style="width:100%; margin-bottom:8px; justify-content: flex-start;" onclick="loadTemplate('academic')">
+                    <i data-lucide="graduation-cap"></i> Academic Paper
+                </button>
+                <button class="btn" style="width:100%; justify-content: flex-start;" onclick="loadTemplate('apa')">
+                    <i data-lucide="book-open"></i> APA Bibliography
+                </button>
+            </div>
+        </aside>
+
+        <section class="editor-pane"><textarea id="editorArea"></textarea></section>
+        <section class="preview-pane" id="pdfPreviewZone">
+            <div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-direction: column; gap: 12px;">
+                <i data-lucide="eye" style="width: 48px; height: 48px; opacity: 0.2;"></i>
+                <p>Preview will appear here after compilation</p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="modal" id="authModal">
+    <div class="modal-content">
+        <h2 style="margin-bottom: 20px;">Scholar Sign In</h2>
+        <input type="email" id="authEmail" placeholder="Email address">
+        <input type="password" id="authPass" placeholder="Password">
+        <div id="authError" style="color: var(--accent-danger); font-size: 13px; margin-top: 5px;"></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="processAuth('login')">Log In</button>
+        <button class="btn btn-outline" style="width:100%; margin-top:8px; border:none;" onclick="processAuth('signup')">Create Account</button>
+        <button class="btn" style="width:100%; margin-top:12px; border:none; color: var(--text-muted);" onclick="toggleModal(false)">Cancel</button>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+    
+    // --- USER CONFIG ---
+    const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
+    const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
+
+    const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+    let editor, currentUser, currentDocId, projectAssets = [];
+
+    window.onload = () => {
+        editor = CodeMirror.fromTextArea(document.getElementById('editorArea'), {
+            mode: 'stex', theme: 'monokai', lineNumbers: true, lineWrapping: true
+        });
+        checkSession();
+        
+        const lastWork = localStorage.getItem('roguetex_local_bak');
+        if(lastWork) editor.setValue(lastWork);
+        else loadTemplate('minimal');
+
+        editor.on('change', () => localStorage.setItem('roguetex_local_bak', editor.getValue()));
+    };
+
+    function toggleModal(open) { document.getElementById('authModal').classList.toggle('active', open); }
+
+    async function checkSession() {
+        const { data } = await supabaseClient.auth.getSession();
+        syncAuthUI(data.session?.user);
+        supabaseClient.auth.onAuthStateChange((_e, session) => syncAuthUI(session?.user));
+    }
+
+    function syncAuthUI(user) {
+        currentUser = user;
+        document.getElementById('userEmailDisplay').textContent = user ? user.email : '';
+        document.getElementById('loginBtn').style.display = user ? 'none' : 'block';
+        document.getElementById('logoutBtn').style.display = user ? 'block' : 'none';
+        document.getElementById('saveCloudBtn').disabled = !user;
+        if(user) fetchProjects();
+    }
+
+    async function processAuth(mode) {
+        const email = document.getElementById('authEmail').value;
+        const pass = document.getElementById('authPass').value;
+        const err = document.getElementById('authError');
+        
+        let result = mode === 'login' 
+            ? await supabaseClient.auth.signInWithPassword({ email, password: pass })
+            : await supabaseClient.auth.signUp({ email, password: pass });
+
+        if(result.error) err.textContent = result.error.message;
+        else toggleModal(false);
+    }
+
+    async function signOut() { await supabaseClient.auth.signOut(); }
+
+    async function fetchProjects() {
+        const { data, error } = await supabaseClient.from('documents').select('id, title');
+        const list = document.getElementById('cloudDocList');
+        if(error) list.textContent = "Error loading projects.";
+        else {
+            list.innerHTML = data.map(d => `<div class="doc-item" onclick="loadProject('${d.id}')"><span>${d.title}</span><i data-lucide="chevron-right" style="width:14px"></i></div>`).join('') || "No projects saved yet.";
             lucide.createIcons();
-
-            const docData = {
-                user_id: currentUser.id,
-                title: titleInput,
-                content: content,
-                updated_at: new Date().toISOString()
-            };
-
-            let response;
-            if (currentDocumentId) {
-                response = await supabaseClient.from('documents').update(docData).eq('id', currentDocumentId);
-            } else {
-                response = await supabaseClient.from('documents').insert([docData]).select();
-                if(response.data && response.data.length > 0) {
-                    currentDocumentId = response.data[0].id;
-                }
-            }
-
-            saveBtn.innerHTML = '<i data-lucide="cloud-check"></i> Saved';
-            lucide.createIcons();
-            setTimeout(() => {
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i data-lucide="cloud"></i> Save to Cloud';
-                lucide.createIcons();
-            }, 2000);
-
-            fetchCloudDocuments();
         }
+    }
 
-        async function loadCloudDocument(id) {
-            const { data, error } = await supabaseClient.from('documents').select('*').eq('id', id).single();
-            if (error || !data) {
-                alert("Could not load document.");
-                return;
-            }
+    async function saveToCloud() {
+        const payload = { 
+            user_id: currentUser.id, 
+            title: document.getElementById('docTitleInput').value, 
+            content: editor.getValue() 
+        };
+        const saveBtn = document.getElementById('saveCloudBtn');
+        saveBtn.textContent = "Saving...";
 
-            currentDocumentId = data.id;
-            document.getElementById('documentTitle').value = data.title;
+        if(currentDocId) await supabaseClient.from('documents').update(payload).eq('id', currentDocId);
+        else {
+            const { data } = await supabaseClient.from('documents').insert([payload]).select();
+            if(data) currentDocId = data[0].id;
+        }
+        saveBtn.innerHTML = `<i data-lucide="cloud"></i> Save to Cloud`;
+        lucide.createIcons();
+        fetchProjects();
+    }
+
+    async function loadProject(id) {
+        const { data } = await supabaseClient.from('documents').select('*').eq('id', id).single();
+        if(data) {
             editor.setValue(data.content);
-            fetchCloudDocuments(); 
+            document.getElementById('docTitleInput').value = data.title;
+            currentDocId = data.id;
         }
+    }
 
-        // --- Utility & UI ---
-        function loadTemplate(type) {
-            const code = `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\n\\title{New Document}\n\\author{Author Name}\n\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\nBegin writing here.\n\n\\end{document}`;
-            editor.setValue(code);
-            document.getElementById('documentTitle').value = 'Untitled Document';
-            currentDocumentId = null; 
-            if(currentUser) fetchCloudDocuments();
-        }
-
-        function downloadTex() {
-            const text = editor.getValue();
-            const blob = new Blob([text], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = (document.getElementById('documentTitle').value || 'document') + '.tex';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function setupResizer() {
-            const resizer = document.getElementById('resizer');
-            const workspace = document.getElementById('workspace');
-            const editorPane = document.getElementById('editorPane');
-            const previewPane = document.getElementById('previewPane');
-            let isResizing = false;
-
-            resizer.addEventListener('mousedown', () => {
-                isResizing = true;
-                resizer.classList.add('active');
-                previewPane.style.pointerEvents = 'none'; 
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (isResizing) {
-                    isResizing = false;
-                    resizer.classList.remove('active');
-                    previewPane.style.pointerEvents = '';
+    function handleFileUpload(input) {
+        for (let file of input.files) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result.split(',')[1];
+                if(!projectAssets.find(a => a.name === file.name)) {
+                    projectAssets.push({ name: file.name, content: base64 });
+                    renderAssets();
                 }
-            });
-
-            document.addEventListener('mousemove', (event) => {
-                if (!isResizing) return;
-                const bounds = workspace.getBoundingClientRect();
-                const newEditorWidth = ((event.clientX - bounds.left) / bounds.width) * 100;
-                if (newEditorWidth > 20 && newEditorWidth < 80) {
-                    editorPane.style.flex = `0 0 ${newEditorWidth}%`;
-                    previewPane.style.flex = `1 1 0%`;
-                }
-            });
+            };
+            reader.readAsDataURL(file);
         }
+    }
 
-        function updateStatus(state, text) {
-            const badge = document.getElementById('statusBadge');
-            const icon = document.getElementById('statusIcon');
-            badge.className = `status-badge ${state}`;
-            document.getElementById('statusText').textContent = text;
-            
-            icon.classList.remove('spin');
-            if (state === 'idle') icon.setAttribute('data-lucide', 'check-circle');
-            if (state === 'compiling') { icon.setAttribute('data-lucide', 'loader-2'); icon.classList.add('spin'); }
-            if (state === 'success') icon.setAttribute('data-lucide', 'check-circle-2');
-            if (state === 'error') icon.setAttribute('data-lucide', 'alert-circle');
-            lucide.createIcons();
-        }
+    function removeAsset(idx) { projectAssets.splice(idx, 1); renderAssets(); }
 
-        // --- Compilation ---
-        async function compileLatex() {
-            const latexCode = editor.getValue();
-            if (!latexCode.trim()) { updateStatus('error', 'Editor is empty'); return; }
+    function renderAssets() {
+        document.getElementById('fileListDisplay').innerHTML = projectAssets.map((a, i) => `
+            <div class="file-item">
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${a.name}</span>
+                <button class="file-remove-btn" onclick="removeAsset(${i})"><i data-lucide="trash-2" style="width:14px"></i></button>
+            </div>`).join('');
+        lucide.createIcons();
+    }
 
-            updateStatus('compiling', 'Compiling...');
-            document.getElementById('compileBtn').disabled = true;
-
-            try {
-                const response = await fetch(COMPILE_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ latex: latexCode })
-                });
-
-                const payload = await response.json().catch(() => null);
-                
-                if (!response.ok || !payload || payload.success !== true) {
-                    updateStatus('error', 'Compilation failed');
-                    alert(payload?.error || "Server error");
-                } else {
-                    displayPDF(payload.pdf);
-                    updateStatus('success', 'Success');
-                }
-            } catch (error) {
-                updateStatus('error', 'Server offline');
-                alert("Could not connect to compiler.");
-            } finally {
-                document.getElementById('compileBtn').disabled = false;
-            }
-        }
-
-        function displayPDF(base64PDF) {
-            const viewer = document.getElementById('pdfViewer');
-            if (currentPDFUrl) URL.revokeObjectURL(currentPDFUrl);
-            
-            const binary = atob(base64PDF);
-            const array = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
-            const blob = new Blob([array], { type: 'application/pdf' });
-            
-            currentPDFUrl = URL.createObjectURL(blob);
-            currentPDF = base64PDF;
-
-            viewer.innerHTML = `<iframe class="pdf-frame" src="${currentPDFUrl}#toolbar=0" title="PDF Preview"></iframe>`;
+    async function compileLatex() {
+        document.querySelector('.brand h1').textContent = "Compiling...";
+        const response = await fetch(COMPILE_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                latex: editor.getValue(), 
+                files: projectAssets.map(a => ({ path: a.name, contentBase64: a.content })) 
+            })
+        });
+        const data = await response.json();
+        document.querySelector('.brand h1').textContent = "RogueTeX";
+        if(data.success) {
+            document.getElementById('pdfPreviewZone').innerHTML = `<iframe src="data:application/pdf;base64,${data.pdf}"></iframe>`;
+            window.latestPdfData = data.pdf;
             document.getElementById('downloadPdfBtn').disabled = false;
-        }
+        } else alert("Error: " + data.error);
+    }
 
-        function downloadPDF() {
-            if (!currentPDF) return;
-            const link = document.createElement('a');
-            link.href = `data:application/pdf;base64,${currentPDF}`;
-            link.download = (document.getElementById('documentTitle').value || 'document') + '.pdf';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }        
-    </script>
+    function loadTemplate(t) {
+        if(t === 'academic') editor.setValue(`\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage{arabxetex}\n\n\\title{MSA Research}\n\\author{Muhammad S. Abdo}\n\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\nWrite here...\n\n\\end{document}`);
+        else if(t === 'apa') editor.setValue(`\\documentclass[12pt]{article}\n\\usepackage{apacite}\n\n\\begin{document}\n\\section{References}\n\\bibliographystyle{apacite}\n\\bibliography{references}\n\\end{document}`);
+        else editor.setValue(`\\documentclass[12pt]{article}\n\\begin{document}\nHello World\n\\end{document}`);
+    }
+
+    function downloadPDF() {
+        const a = document.createElement('a');
+        a.href = `data:application/pdf;base64,${window.latestPdfData}`;
+        a.download = document.getElementById('docTitleInput').value + ".pdf";
+        a.click();
+    }
+
+    function downloadTex() {
+        const blob = new Blob([editor.getValue()], {type: 'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = document.getElementById('docTitleInput').value + ".tex";
+        a.click();
+    }
+</script>
 </body>
 </html>
