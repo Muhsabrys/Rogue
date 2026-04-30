@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rogue – Local LaTeX Editor</title>
+
+  <!-- CodeMirror 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════  TOP BAR  ══════════════════════ -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="logo">⚡ Rogue</span>
+    <span class="tagline">Local LaTeX Editor</span>
+  </div>
+  <div class="topbar-center" id="projectTitle">No project open</div>
+  <div class="topbar-right">
+    <button class="btn btn-primary" id="compileBtn" disabled>▶ Compile</button>
+    <button class="btn btn-ghost" id="newProjectBtn">＋ New Project</button>
+  </div>
+</header>
+
+<!-- ══════════════════════  MAIN LAYOUT  ══════════════════════ -->
+<div class="layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Projects</div>
+      <ul class="project-list" id="projectList"></ul>
+    </div>
+    <div class="sidebar-section" id="filesSection" style="display:none">
+      <div class="sidebar-heading">
+        Files
+        <button class="icon-btn" id="newFileBtn" title="New file">＋</button>
+      </div>
+      <ul class="file-list" id="fileList"></ul>
+    </div>
+  </aside>
+
+  <!-- ── Editor ── -->
+  <main class="editor-pane">
+    <div class="editor-toolbar">
+      <span class="file-badge" id="fileBadge">—</span>
+      <button class="icon-btn" id="saveBtn" title="Save (Ctrl+S)" disabled>💾 Save</button>
+    </div>
+    <div id="editorContainer" class="editor-container">
+      <div class="editor-placeholder">
+        <div>
+          <p>👋 Welcome to <strong>Rogue</strong></p>
+          <p>Create or open a project from the sidebar to get started.</p>
+        </div>
+      </div>
+      <textarea id="editor"></textarea>
+    </div>
+  </main>
+
+  <!-- ── Preview ── -->
+  <section class="preview-pane">
+    <div class="preview-tabs">
+      <button class="tab-btn active" data-tab="pdf">PDF Preview</button>
+      <button class="tab-btn" data-tab="log">Compile Log</button>
+    </div>
+
+    <div class="tab-content active" id="tab-pdf">
+      <div class="pdf-placeholder" id="pdfPlaceholder">
+        <div>
+          <p>📄 Compile your project to see the PDF here.</p>
+          <p><small>Requires <code>pdflatex</code> to be installed.</small></p>
+        </div>
+      </div>
+      <iframe id="pdfFrame" title="PDF Preview" style="display:none"></iframe>
+    </div>
+
+    <div class="tab-content" id="tab-log">
+      <pre class="log-output" id="logOutput">No compilation log yet.</pre>
+    </div>
+  </section>
+
+</div>
+
+<!-- ══════════════════════  MODALS  ══════════════════════ -->
+<div class="modal-backdrop" id="modalBackdrop" style="display:none">
+  <div class="modal" id="modal">
+    <h2 id="modalTitle">Dialog</h2>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalConfirm">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Status toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════  SCRIPTS  ══════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/stex/stex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

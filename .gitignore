@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Compiled project outputs (PDFs, aux files, logs, etc.)
+projects/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.env
+
+# npm lock (keep package-lock.json but ignore yarn.lock if not used)
+yarn.lock
