@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RogueTeX Cloud</title>
 
-    <!-- FIX 1: Restored proper <link> tags with https: prefix -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -23,8 +22,7 @@
         --accent-primary: #2563eb; --accent-success: #059669; --accent-danger: #dc2626;
         --radius-md: 6px; --font-sans: 'Inter', sans-serif;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); font-size: 16px; }
-    /* FIX 2: Moved layout-critical rules off * and onto body only */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); font-size: 16px; }
     body { background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
     .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
     .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light); }
@@ -44,7 +42,6 @@
     .file-remove-btn { background: transparent; border: none; color: var(--accent-danger); cursor: pointer; padding: 4px; border-radius: 4px; }
     .file-remove-btn:hover { background: #fee2e2; }
     .main { flex: 1; display: flex; flex-direction: column; }
-    .editor { flex: 1; }
     .preview { flex: 1; padding: 32px; background: white; overflow-y: auto; border-left: 2px solid var(--border-light); }
     #pdfPreview { width: 100%; height: 100%; border: none; }
     #authModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 999; }
@@ -66,8 +63,7 @@
     <div class="topbar">
         <div class="brand"><h1>RogueTeX</h1></div>
         <div class="auth-zone" id="authZone">
-            <span id="userEmail"></span>
-            <button class="btn" onclick="signOut()">Sign Out</button>
+            <!-- Fully managed by syncAuthUI() — no static children needed -->
         </div>
     </div>
 
@@ -75,7 +71,7 @@
         <input type="text" id="docTitleInput" class="title-input" value="Untitled Document" placeholder="Document title...">
         <div style="display: flex; gap: 12px;">
             <button class="btn btn-primary" onclick="compile()"><i data-lucide="play" style="width:18px;height:18px"></i> Compile</button>
-            <button class="btn" id="saveCloudBtn" onclick="saveToCloud()"><i data-lucide="cloud" style="width:18px;height:18px"></i> Save to Cloud</button>
+            <button class="btn" id="saveCloudBtn" onclick="saveToCloud()" disabled><i data-lucide="cloud" style="width:18px;height:18px"></i> Save to Cloud</button>
             <button class="btn" onclick="downloadTeX()"><i data-lucide="download" style="width:18px;height:18px"></i> .tex</button>
             <button class="btn btn-success" onclick="downloadPDF()"><i data-lucide="file-down" style="width:18px;height:18px"></i> PDF</button>
         </div>
@@ -146,7 +142,6 @@
         editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
             mode: 'stex', theme: 'monokai', lineNumbers: true, lineWrapping: true
         });
-        // FIX 3: \\documentclass (JS) → \documentclass (LaTeX). Was \\\\, now \\
         editor.setValue(
 `\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
@@ -170,17 +165,20 @@ Write here...
 
     async function checkSession() {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        syncAuthUI(session?.user);
-        supabaseClient.auth.onAuthStateChange((_, session) => syncAuthUI(session?.user));
+        syncAuthUI(session?.user ?? null);
+        supabaseClient.auth.onAuthStateChange((_, session) => syncAuthUI(session?.user ?? null));
     }
 
+    // FIX: Removed orphaned getElementById('userEmail') call.
+    // authZone.innerHTML is fully rebuilt each time, so querying a stale
+    // child element from a previous render would return null after sign-out.
     function syncAuthUI(user) {
         currentUser = user;
         const authZone = document.getElementById('authZone');
         const cloudBtn = document.getElementById('saveCloudBtn');
         if (user) {
-            document.getElementById('userEmail').textContent = user.email;
-            authZone.innerHTML = `<span>${user.email}</span><button class="btn" onclick="signOut()">Sign Out</button>`;
+            // Email is rendered directly inside the rebuilt innerHTML — no separate element needed
+            authZone.innerHTML = `<span style="color:var(--text-muted); font-size:14px;">${user.email}</span><button class="btn" onclick="signOut()">Sign Out</button>`;
             cloudBtn.disabled = false;
             fetchProjects();
         } else {
@@ -188,6 +186,7 @@ Write here...
             cloudBtn.disabled = true;
             document.getElementById('cloudDocList').innerHTML = 'Sign in to sync your work...';
         }
+        lucide.createIcons();
     }
 
     async function signOut() { await supabaseClient.auth.signOut(); }
@@ -197,25 +196,24 @@ Write here...
         const list = document.getElementById('cloudDocList');
         if (error) {
             console.error("Fetch Error:", error);
-            // FIX 4: Changed single quotes to backticks so ${error.message} interpolates correctly
             list.innerHTML = `<div style="color:var(--accent-danger)">Error: ${error.message}</div>`;
         } else {
             list.innerHTML = data.map(d => `
                 <div class="doc-item" onclick="loadProject('${d.id}')" data-id="${d.id}">
                     <span>${d.title}</span>
                     <i data-lucide="chevron-right" style="width:14px"></i>
-                </div>`).join('') || "No projects saved yet.";
+                </div>`).join('') || '<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No projects saved yet.</div>';
             lucide.createIcons();
         }
     }
 
     async function saveToCloud() {
+        if (!currentUser) return;
         const title = document.getElementById('docTitleInput').value;
         const saveBtn = document.getElementById('saveCloudBtn');
         saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Syncing...';
         lucide.createIcons();
 
-        let res;
         const payload = {
             user_id: currentUser.id,
             title: title,
@@ -223,6 +221,7 @@ Write here...
             assets: projectAssets
         };
 
+        let res;
         if (currentDocId) {
             res = await supabaseClient.from('documents').update(payload).eq('id', currentDocId);
         } else {
@@ -235,6 +234,7 @@ Write here...
             alert('Save failed: ' + res.error.message);
         } else {
             saveBtn.innerHTML = '<i data-lucide="check"></i> Saved';
+            lucide.createIcons();
             setTimeout(() => {
                 saveBtn.innerHTML = '<i data-lucide="cloud"></i> Save to Cloud';
                 lucide.createIcons();
@@ -258,7 +258,6 @@ Write here...
     }
 
     function newProject() {
-        // FIX 3 applied here too
         editor.setValue(
 `\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
@@ -392,7 +391,6 @@ Start writing here...
     }
 
     function insertTemplate(type) {
-        // FIX 3 applied to all templates
         if (type === 'academic') {
             editor.setValue(
 `\\documentclass[12pt]{article}
