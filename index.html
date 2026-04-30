@@ -3,703 +3,543 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RogueTeX</title>
+    <title>RogueTeX Cloud</title>
     
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     
-    <!-- CodeMirror Editor Core -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/stex/stex.min.js"></script>
 
-    <!-- CodeMirror Addons (Search & Replace) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/search.min.js"></script>
 
-    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Application Styles -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
-        /* --- 1. Variables & Base Setup --- */
         :root {
-            /* Colors */
             --bg-body: #f1f5f9;
             --bg-surface: #ffffff;
             --bg-panel: #f8fafc;
-            --bg-hover: #f1f5f9;
+            --bg-hover: #e2e8f0;
             
-            --border-light: #e2e8f0;
-            --border-focus: #cbd5e1;
+            --border-light: #cbd5e1;
+            --border-focus: #94a3b8;
             
             --text-main: #0f172a;
-            --text-muted: #64748b;
-            --text-light: #94a3b8;
+            --text-muted: #334155;
+            --text-light: #475569;
             
-            --accent-primary: #3b82f6;
-            --accent-primary-hover: #2563eb;
-            --accent-success: #10b981;
-            --accent-success-hover: #059669;
-            --accent-danger: #ef4444;
+            --accent-primary: #2563eb;
+            --accent-primary-hover: #1d4ed8;
+            --accent-success: #059669;
+            --accent-danger: #dc2626;
             
-            /* Status Colors */
-            --status-idle-bg: #f1f5f9; --status-idle-text: #64748b;
-            --status-compiling-bg: #fef3c7; --status-compiling-text: #d97706;
-            --status-success-bg: #d1fae5; --status-success-text: #059669;
-            --status-error-bg: #fee2e2; --status-error-text: #dc2626;
+            --status-idle-bg: #e2e8f0; --status-idle-text: #334155;
+            --status-compiling-bg: #fef3c7; --status-compiling-text: #b45309;
+            --status-success-bg: #d1fae5; --status-success-text: #047857;
+            --status-error-bg: #fee2e2; --status-error-text: #b91c1c;
 
-            /* Metrics & Shadows */
-            --radius-md: 8px;
-            --radius-lg: 12px;
-            --radius-xl: 16px;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius-md: 6px;
+            --radius-lg: 10px;
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.15);
             
-            /* Typography */
-            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-            --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', Consolas, monospace;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
             font-family: var(--font-sans);
+            font-size: 16px;
             color: var(--text-main);
             background-color: var(--bg-body);
             height: 100vh;
             display: flex;
-            padding: 12px;
+            padding: 0;
             overflow: hidden;
         }
 
-        /* --- 2. Layout Structure --- */
         .app-container {
             display: flex;
             flex-direction: column;
             width: 100%;
             height: 100%;
             background: var(--bg-surface);
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-lg);
-            border: 1px solid var(--border-light);
             overflow: hidden;
         }
 
-        /* --- 3. Topbar & Header --- */
+        /* Topbar */
         .topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 16px 24px;
-            border-bottom: 1px solid var(--border-light);
+            border-bottom: 2px solid var(--border-light);
             background: var(--bg-surface);
             z-index: 10;
         }
 
-        .brand-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .brand-section { display: flex; align-items: center; gap: 16px; }
+        
+        .brand-text h1 { font-size: 22px; font-weight: 700; color: var(--text-main); }
+        .brand-text p { font-size: 14px; color: var(--text-muted); }
 
-        .brand-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: var(--bg-panel);
-            border-radius: var(--radius-md);
-            color: var(--accent-primary);
-            border: 1px solid var(--border-light);
-        }
-
-        .brand-text h1 {
-            font-size: 18px;
-            font-weight: 600;
-            line-height: 1.2;
-            letter-spacing: -0.01em;
-        }
-
-        .brand-text p {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
+        .auth-section { display: flex; align-items: center; gap: 16px; }
+        .user-email { font-size: 14px; font-weight: 600; color: var(--text-muted); display: none; }
 
         .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 99px;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 16px; border-radius: 4px;
+            font-size: 14px; font-weight: 600;
         }
-
         .status-badge.idle { background: var(--status-idle-bg); color: var(--status-idle-text); }
         .status-badge.compiling { background: var(--status-compiling-bg); color: var(--status-compiling-text); }
         .status-badge.success { background: var(--status-success-bg); color: var(--status-success-text); }
         .status-badge.error { background: var(--status-error-bg); color: var(--status-error-text); }
 
-        .status-badge i { width: 14px; height: 14px; }
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        /* --- 4. Main Toolbar --- */
+        /* Toolbar */
         .toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 24px;
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border-light);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light);
             gap: 16px;
         }
+        .toolbar-group { display: flex; align-items: center; gap: 16px; }
 
-        .toolbar-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* --- 5. Buttons & Controls --- */
         .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 8px 16px;
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 500;
-            border-radius: var(--radius-md);
-            border: 1px solid transparent;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            text-decoration: none;
-            white-space: nowrap;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 10px 20px; font-family: inherit; font-size: 15px; font-weight: 600;
+            border-radius: var(--radius-md); border: 1px solid transparent;
+            cursor: pointer; transition: 0.2s; white-space: nowrap;
         }
-
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn i { width: 16px; height: 16px; }
-
-        .btn-primary { background: var(--accent-primary); color: white; box-shadow: var(--shadow-sm); }
+        .btn i { width: 18px; height: 18px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-primary { background: var(--accent-primary); color: #fff; }
         .btn-primary:hover:not(:disabled) { background: var(--accent-primary-hover); }
-
-        .btn-success { background: var(--accent-success); color: white; box-shadow: var(--shadow-sm); }
-        .btn-success:hover:not(:disabled) { background: var(--accent-success-hover); }
-
+        .btn-success { background: var(--accent-success); color: #fff; }
         .btn-outline { background: var(--bg-surface); border-color: var(--border-light); color: var(--text-main); }
         .btn-outline:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-focus); }
 
-        .btn-icon { padding: 8px; color: var(--text-muted); background: transparent; border: 1px solid transparent; border-radius: var(--radius-md); cursor: pointer; transition: 0.2s; }
-        .btn-icon:hover { background: var(--bg-hover); color: var(--text-main); }
-
-        /* Dropdown Menu */
-        .dropdown { position: relative; }
-        .dropdown-menu {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            min-width: 220px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-lg);
-            z-index: 100;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-5px);
-            transition: all 0.2s ease;
-        }
-        .dropdown.active .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
-        
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
+        /* Document Title Input */
+        .doc-title-input {
+            font-size: 16px; font-family: inherit; font-weight: 600;
+            padding: 8px 12px; border: 1px solid var(--border-light);
+            border-radius: var(--radius-md); width: 250px; background: var(--bg-surface);
             color: var(--text-main);
-            font-size: 13px;
-            text-decoration: none;
-            transition: background 0.15s ease;
         }
-        .dropdown-item i { width: 14px; height: 14px; color: var(--text-muted); }
-        .dropdown-item:hover { background: var(--bg-hover); color: var(--accent-primary); }
-        .dropdown-divider { height: 1px; background: var(--border-light); margin: 4px 0; }
+        .doc-title-input:focus { outline: none; border-color: var(--accent-primary); }
 
-        /* --- 6. Workspace Layout --- */
-        .workspace {
-            display: flex;
-            flex: 1;
-            min-height: 0;
-            position: relative;
-        }
+        /* Workspace */
+        .workspace { display: flex; flex: 1; min-height: 0; position: relative; }
 
-        /* --- 7. Sidebar (Project Files) --- */
+        /* Sidebar */
         .sidebar {
-            width: 280px;
-            min-width: 200px;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-panel);
-            border-right: 1px solid var(--border-light);
-            transition: transform 0.3s ease, width 0.3s ease;
+            width: 320px; display: flex; flex-direction: column;
+            background: var(--bg-panel); border-right: 2px solid var(--border-light);
         }
+        .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-light); }
+        .sidebar-header h2 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 24px; }
 
-        .sidebar.collapsed { width: 0; min-width: 0; border-right: none; overflow: hidden; }
-
-        .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-light);
+        /* Cloud Documents List */
+        .cloud-doc-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px; background: var(--bg-surface); border: 1px solid var(--border-light);
+            border-radius: var(--radius-md); margin-bottom: 8px; cursor: pointer; transition: 0.2s;
         }
-
-        .sidebar-header h2 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+        .cloud-doc-item:hover { border-color: var(--accent-primary); box-shadow: var(--shadow-md); }
+        .cloud-doc-item.active { border-color: var(--accent-primary); border-width: 2px; }
+        .doc-info { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+        .doc-name { font-weight: 600; font-size: 15px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .doc-date { font-size: 12px; color: var(--text-light); }
+        
+        /* Modals */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.7); display: none; align-items: center; justify-content: center; z-index: 1000;
         }
-
-        .upload-zone {
-            border: 2px dashed var(--border-focus);
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--bg-surface); padding: 32px; border-radius: var(--radius-lg);
+            width: 100%; max-width: 400px; box-shadow: var(--shadow-lg);
+        }
+        .modal-box h3 { font-size: 20px; font-weight: 700; margin-bottom: 24px; color: var(--text-main); }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); }
+        .form-group input {
+            width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--border-light);
             border-radius: var(--radius-md);
-            padding: 16px;
-            text-align: center;
-            background: var(--bg-surface);
-            transition: all 0.2s ease;
         }
-        
-        .upload-zone.dragover {
-            border-color: var(--accent-primary);
-            background: rgba(59, 130, 246, 0.05);
-        }
+        .form-group input:focus { outline: none; border-color: var(--accent-primary); }
+        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-actions .btn { flex: 1; }
+        #authError { color: var(--accent-danger); font-size: 14px; margin-top: 12px; font-weight: 500; }
 
-        .upload-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .upload-actions .btn { width: 100%; justify-content: flex-start; }
-
-        .file-list-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .file-list { display: flex; flex-direction: column; gap: 4px; }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 10px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-md);
-            font-size: 12px;
-        }
-
-        .file-item-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            overflow: hidden;
-        }
-        
-        .file-item-info i { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
-        .file-item-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .file-item-delete {
-            background: none; border: none; color: var(--text-light); cursor: pointer; padding: 4px;
-            border-radius: 4px; display: flex; align-items: center; justify-content: center;
-        }
-        .file-item-delete:hover { color: var(--accent-danger); background: var(--bg-hover); }
-
-        .empty-files {
-            text-align: center;
-            padding: 24px 0;
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-
-        /* --- 8. Editor & Preview Panes --- */
-        .editor-pane {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-            background: #272822; /* Monokai background to match CodeMirror */
-        }
-
-        .preview-pane {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-            background: var(--bg-surface);
-        }
-
+        /* Panes */
+        .editor-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #272822; }
+        .preview-pane { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-surface); }
         .pane-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 16px;
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border-light);
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-
-        /* CodeMirror Overrides */
-        .CodeMirror {
-            height: 100% !important;
-            font-family: var(--font-mono) !important;
-            font-size: 14px !important;
-            line-height: 1.6 !important;
-        }
-        .CodeMirror-scroll { padding: 16px 0; }
-
-        /* CodeMirror Search Dialog Theming */
-        .CodeMirror-dialog {
-            background: #1e1f1c !important;
-            color: #8f908a !important;
-            border-bottom: 1px solid #333 !important;
-            padding: 8px 16px !important;
-            font-family: var(--font-sans);
-            font-size: 12px;
-        }
-        .CodeMirror-dialog input {
-            background: #272822;
-            border: 1px solid #444;
-            color: #f8f8f2;
-            border-radius: 4px;
-            padding: 4px 8px;
-            margin: 0 8px;
-            font-family: var(--font-mono);
-            outline: none;
-        }
-        .CodeMirror-dialog input:focus { border-color: var(--accent-primary); }
-        .CodeMirror-dialog button {
-            background: #333;
-            border: 1px solid #444;
-            color: #f8f8f2;
-            border-radius: 4px;
-            padding: 4px 8px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 4px;
-        }
-        .CodeMirror-dialog button:hover { background: #444; }
-
-        /* Preview Area */
-        .preview-content {
-            flex: 1;
-            display: flex;
-            position: relative;
-            background: #e2e8f0;
-            overflow: hidden;
-        }
-
-        .pdf-frame { width: 100%; height: 100%; border: none; }
-
-        .placeholder-state {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 32px;
-            text-align: center;
-            background: var(--bg-surface);
-            color: var(--text-muted);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light);
+            font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;
         }
         
-        .placeholder-state i { width: 48px; height: 48px; color: var(--border-focus); margin-bottom: 16px; opacity: 0.5; }
-        .placeholder-state h3 { font-size: 16px; font-weight: 500; color: var(--text-main); margin-bottom: 8px; }
-        .placeholder-state p { font-size: 13px; max-width: 300px; line-height: 1.5; }
-
-        .error-message {
-            margin: 16px;
-            padding: 16px;
-            border-radius: var(--radius-md);
-            border: 1px solid #fca5a5;
-            background: var(--status-error-bg);
-            color: var(--status-error-text);
-            font-family: var(--font-mono);
-            font-size: 12px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            overflow: auto;
-            position: absolute;
-            inset: 0;
-            z-index: 10;
-        }
-
-        /* --- 9. Resizer Component --- */
-        .resizer {
-            width: 4px;
-            background: var(--border-light);
-            cursor: col-resize;
-            transition: background 0.2s ease;
-            z-index: 5;
-        }
+        .CodeMirror { height: 100% !important; font-family: var(--font-mono) !important; font-size: 16px !important; line-height: 1.6 !important; }
+        .CodeMirror-scroll { padding: 16px 0; }
+        
+        .pdf-frame { width: 100%; height: 100%; border: none; }
+        .resizer { width: 6px; background: var(--border-light); cursor: col-resize; transition: 0.2s; z-index: 5; }
         .resizer:hover, .resizer.active { background: var(--accent-primary); }
-
-        /* --- 10. Hidden Inputs --- */
-        .hidden-inputs { display: none; }
-
-        /* --- 11. Responsive Design --- */
-        @media (max-width: 1024px) {
-            body { padding: 0; }
-            .app-container { border-radius: 0; border: none; box-shadow: none; }
-            .workspace { flex-direction: column; }
-            .resizer { height: 4px; width: 100%; cursor: row-resize; }
-            .sidebar { width: 100%; max-width: none; border-right: none; border-bottom: 1px solid var(--border-light); }
-            .sidebar:not(.collapsed) { height: 250px; }
-            .editor-pane, .preview-pane { flex: 1 1 50%; }
+        
+        .placeholder-state {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 32px; text-align: center; color: var(--text-muted);
         }
+        .placeholder-state i { width: 48px; height: 48px; color: var(--border-focus); margin-bottom: 16px; }
+        .placeholder-state h3 { font-size: 18px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
     </style>
 </head>
 <body>
 
     <div class="app-container">
-        <!-- HEADER -->
         <header class="topbar">
             <div class="brand-section">
-                <button class="btn-icon" onclick="toggleSidebar()" title="Toggle Sidebar">
-                    <i data-lucide="panel-left"></i>
-                </button>
-                <div class="brand-logo">
-                    <i data-lucide="pen-tool"></i>
-                </div>
                 <div class="brand-text">
                     <h1>RogueTeX</h1>
-                    <p>Keep Compiling</p>
+                    <p>Cloud Workspace</p>
                 </div>
             </div>
             
-            <div class="status-badge idle" id="statusBadge">
-                <i data-lucide="check-circle" id="statusIcon"></i>
-                <span id="statusText">Ready</span>
+            <div class="auth-section">
+                <span class="user-email" id="userEmailDisplay"></span>
+                <button class="btn btn-outline" id="loginBtn" onclick="openAuthModal()">Sign In</button>
+                <button class="btn btn-outline" id="logoutBtn" onclick="signOut()" style="display: none;">Sign Out</button>
+                <div class="status-badge idle" id="statusBadge">
+                    <i data-lucide="check-circle" id="statusIcon"></i>
+                    <span id="statusText">Ready</span>
+                </div>
             </div>
         </header>
 
-        <!-- TOOLBAR -->
         <nav class="toolbar">
             <div class="toolbar-group">
                 <button class="btn btn-primary" id="compileBtn" onclick="compileLatex()">
                     <i data-lucide="play"></i> Compile
                 </button>
                 
-                <div class="dropdown" id="templateDropdown">
-                    <button class="btn btn-outline" onclick="toggleDropdown(event, 'templateDropdown')">
-                        <i data-lucide="layout-template"></i> Templates <i data-lucide="chevron-down" style="width: 14px; margin-left: 4px;"></i>
-                    </button>
-                    <div class="dropdown-menu">
-                        <a href="#" class="dropdown-item" onclick="loadTemplate('minimal'); return false;"><i data-lucide="file-text"></i> Article (Standard)</a>
-                        <a href="#" class="dropdown-item" onclick="loadTemplate('beamer'); return false;"><i data-lucide="monitor-play"></i> Beamer Presentation</a>
-                        <a href="#" class="dropdown-item" onclick="loadTemplate('report'); return false;"><i data-lucide="book-open"></i> Report</a>
-                        <a href="#" class="dropdown-item" onclick="loadTemplate('letter'); return false;"><i data-lucide="mail"></i> Letter</a>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item" onclick="loadTemplate('imageArticle'); return false;"><i data-lucide="image"></i> Article With Images</a>
-                        <a href="#" class="dropdown-item" onclick="loadTemplate('imageReport'); return false;"><i data-lucide="images"></i> Report With Figures</a>
-                    </div>
-                </div>
-
-                <button class="btn btn-outline" onclick="clearEditor()">
-                    <i data-lucide="trash-2"></i> Clear Editor
+                <input type="text" id="documentTitle" class="doc-title-input" placeholder="Document Title" value="Untitled Document">
+                
+                <button class="btn btn-outline" id="saveCloudBtn" onclick="saveToCloud()" disabled title="Sign in to save to cloud">
+                    <i data-lucide="cloud"></i> Save to Cloud
+                </button>
+                
+                <button class="btn btn-outline" onclick="loadTemplate('minimal')">
+                    <i data-lucide="file-plus"></i> New Blank
                 </button>
             </div>
 
             <div class="toolbar-group">
-                <button class="btn btn-outline" onclick="openPDFInNewTab()" id="viewBtn" disabled>
-                    <i data-lucide="external-link"></i> Open Viewer
+                <button class="btn btn-outline" onclick="downloadTex()">
+                    <i data-lucide="download"></i> Save .tex
                 </button>
-                <button class="btn btn-success" id="downloadBtn" onclick="downloadPDF()" disabled>
-                    <i data-lucide="download"></i> Download PDF
+                <button class="btn btn-success" id="downloadPdfBtn" onclick="downloadPDF()" disabled>
+                    <i data-lucide="file-down"></i> Download PDF
                 </button>
             </div>
         </nav>
 
-        <!-- WORKSPACE (Split layout) -->
         <main class="workspace" id="workspace">
             
-            <!-- SIDEBAR: File Management -->
             <aside class="sidebar" id="sidebar">
                 <div class="sidebar-header">
-                    <h2>Project Files</h2>
-                    <button class="btn-icon" style="padding: 4px;" onclick="clearProjectFiles()" title="Remove All Files">
-                        <i data-lucide="x" style="width: 14px; height: 14px;"></i>
-                    </button>
+                    <h2>Cloud Documents</h2>
                 </div>
-                
-                <div class="sidebar-content">
-                    <div class="upload-zone" id="dropZone">
-                        <i data-lucide="folder-up" style="color: var(--text-muted); width: 24px; height: 24px; margin-bottom: 8px;"></i>
-                        <p style="font-size: 13px; color: var(--text-muted);">Drag & drop files here</p>
-                        
-                        <div class="upload-actions">
-                            <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()">
-                                <i data-lucide="file-plus"></i> Add Files
-                            </button>
-                            <button class="btn btn-outline" onclick="document.getElementById('folderInput').click()">
-                                <i data-lucide="folder-plus"></i> Add Folder
-                            </button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="file-list-header">
-                            <span>Attached Assets</span>
-                            <span id="fileCount" style="color: var(--text-light); font-weight: normal;">0</span>
-                        </div>
-                        <div class="file-list" id="attachmentList">
-                            <div class="empty-files">No supporting files added.</div>
-                        </div>
+                <div class="sidebar-content" id="cloudDocList">
+                    <div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0;">
+                        Sign in to view and save documents to the cloud.
                     </div>
                 </div>
             </aside>
 
-            <!-- EDITOR PANE -->
             <section class="editor-pane" id="editorPane">
                 <div class="pane-header" style="background: #1e1f1c; border-bottom: 1px solid #333; color: #8f908a;">
-                    <span>main.tex</span>
-                    
-                    <!-- Search & Replace Controls -->
-                    <div style="display: flex; gap: 4px;">
-                        <button class="btn-icon" style="color: #8f908a; padding: 4px;" onclick="editor.execCommand('find')" title="Find (Ctrl/Cmd + F)">
-                            <i data-lucide="search" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <button class="btn-icon" style="color: #8f908a; padding: 4px;" onclick="editor.execCommand('replace')" title="Replace (Ctrl/Cmd + Shift + F)">
-                            <i data-lucide="replace" style="width: 14px; height: 14px;"></i>
+                    <span>Editor</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-outline" style="padding: 4px; background: transparent; border: none; cursor: pointer; color: #8f908a;" onclick="editor.execCommand('find')" title="Find (Ctrl+F)">
+                            <i data-lucide="search" style="width: 16px; height: 16px;"></i>
                         </button>
                     </div>
                 </div>
                 <textarea id="latexEditor"></textarea>
             </section>
 
-            <!-- RESIZER -->
             <div class="resizer" id="resizer"></div>
 
-            <!-- PREVIEW PANE -->
             <section class="preview-pane" id="previewPane">
                 <div class="pane-header">
                     <span>PDF Preview</span>
                 </div>
-                <div class="preview-content" id="pdfViewer">
-                    <div class="placeholder-state" id="previewPlaceholder">
+                <div style="flex: 1; position: relative; background: #e2e8f0; overflow: hidden;" id="pdfViewer">
+                    <div class="placeholder-state">
                         <i data-lucide="file-check-2"></i>
                         <h3>Document Ready</h3>
-                        <p>Write your LaTeX code in the editor and click Compile to view the rendered PDF.</p>
+                        <p>Write your LaTeX code and click Compile to view the PDF.</p>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Hidden native file inputs -->
-    <div class="hidden-inputs">
-        <input id="fileInput" type="file" multiple>
-        <input id="folderInput" type="file" multiple webkitdirectory directory>
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-box">
+            <h3>Sign In to RogueTeX</h3>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="authEmail" placeholder="scholar@university.edu">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="authPassword" placeholder="••••••••">
+            </div>
+            <div id="authError"></div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeAuthModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="handleAuth('signup')">Sign Up</button>
+                <button class="btn btn-success" onclick="handleAuth('login')">Log In</button>
+            </div>
+        </div>
     </div>
 
-    <!-- APPLICATION LOGIC -->
     <script>
-        // Initialize Icons
         lucide.createIcons();
 
-        // Constants
-        const compileEndpoint = 'https://muhsabrys-rogue.hf.space/compile';   
-        const projectFiles = new Map();
+        // ==========================================
+        // 1. CONFIGURATION (ENTER YOUR URLS HERE)
+        // ==========================================
+        const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
+        
+        const SUPABASE_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
+        // ==========================================
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         let editor = null;
+        let currentUser = null;
+        let currentDocumentId = null; 
         let currentPDF = null;
         let currentPDFUrl = null;
 
-        // Support files injected automatically if needed
-        const supportFileTemplates = {
-            'apacite.sty': String.raw`\NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{apacite}[2026/04/28 local compatibility shim]
-\newcommand{\citeA}[1]{\cite{#1}}
-\newcommand{\citeNP}[1]{\cite{#1}}
-\newcommand{\citeauthor}[1]{\cite{#1}}
-\newcommand{\citeyear}[1]{\cite{#1}}
-\newcommand{\citeyearNP}[1]{\cite{#1}}
-\newcommand{\shortcite}[1]{\cite{#1}}
-\newcommand{\shortciteA}[1]{\cite{#1}}
-\newcommand{\shortciteNP}[1]{\cite{#1}}
-\newcommand{\fullcite}[1]{\cite{#1}}
-\endinput`
-        };
-
-        // Initialize on Load
+        // Initialize App
         window.addEventListener('DOMContentLoaded', () => {
-            // Setup CodeMirror
             editor = CodeMirror.fromTextArea(document.getElementById('latexEditor'), {
-                mode: 'stex',
-                theme: 'monokai',
-                lineNumbers: true,
-                lineWrapping: true,
-                indentUnit: 4,
-                indentWithTabs: false,
-                matchBrackets: true,
-                autoCloseBrackets: true,
-                styleActiveLine: true
+                mode: 'stex', theme: 'monokai', lineNumbers: true, lineWrapping: true, indentUnit: 4
             });
 
             setupResizer();
-            setupDragAndDrop();
-            attachProjectInputHandlers();
+            checkUser();
             
-            // Load default template
-            loadTemplate('minimal');
+            // Auto-save strictly to local storage as backup
+            const backup = localStorage.getItem('roguetex-local-backup');
+            if(backup) editor.setValue(backup);
+            else loadTemplate('minimal');
+
+            editor.on('change', () => {
+                localStorage.setItem('roguetex-local-backup', editor.getValue());
+            });
         });
 
-        // --- Layout & UI Interactions ---
+        // --- Authentication Logic ---
+        async function checkUser() {
+            const { data: { session } } = await supabase.auth.getSession();
+            updateAuthUI(session?.user || null);
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
+            supabase.auth.onAuthStateChange((_event, session) => {
+                updateAuthUI(session?.user || null);
+            });
         }
 
-        function toggleDropdown(event, id) {
-            event.stopPropagation();
-            const dropdown = document.getElementById(id);
-            dropdown.classList.toggle('active');
+        function updateAuthUI(user) {
+            currentUser = user;
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const emailDisplay = document.getElementById('userEmailDisplay');
+            const saveBtn = document.getElementById('saveCloudBtn');
+
+            if (user) {
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-flex';
+                emailDisplay.style.display = 'block';
+                emailDisplay.textContent = user.email;
+                saveBtn.disabled = false;
+                saveBtn.title = "Save document to cloud";
+                fetchCloudDocuments();
+            } else {
+                loginBtn.style.display = 'inline-flex';
+                logoutBtn.style.display = 'none';
+                emailDisplay.style.display = 'none';
+                saveBtn.disabled = true;
+                saveBtn.title = "Sign in to save to cloud";
+                currentDocumentId = null;
+                document.getElementById('cloudDocList').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0;">Sign in to view and save documents.</div>';
+            }
         }
 
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', () => {
-            document.querySelectorAll('.dropdown.active').forEach(el => el.classList.remove('active'));
-        });
+        function openAuthModal() {
+            document.getElementById('authError').textContent = '';
+            document.getElementById('authModal').classList.add('active');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.remove('active');
+        }
+
+        async function handleAuth(action) {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const errorDiv = document.getElementById('authError');
+            
+            if (!email || !password) {
+                errorDiv.textContent = "Email and password required.";
+                return;
+            }
+
+            errorDiv.textContent = "Processing...";
+            let result;
+
+            if (action === 'signup') {
+                result = await supabase.auth.signUp({ email, password });
+                if(!result.error) errorDiv.textContent = "Check your email for confirmation link if required, or try logging in.";
+            } else {
+                result = await supabase.auth.signInWithPassword({ email, password });
+            }
+
+            if (result.error) {
+                errorDiv.textContent = result.error.message;
+            } else if (action === 'login') {
+                closeAuthModal();
+            }
+        }
+
+        async function signOut() {
+            await supabase.auth.signOut();
+        }
+
+        // --- Database Logic ---
+        async function fetchCloudDocuments() {
+            if (!currentUser) return;
+            
+            const listContainer = document.getElementById('cloudDocList');
+            listContainer.innerHTML = 'Loading documents...';
+
+            const { data, error } = await supabase
+                .from('documents')
+                .select('id, title, updated_at')
+                .order('updated_at', { ascending: false });
+
+            if (error) {
+                listContainer.innerHTML = 'Error loading documents.';
+                return;
+            }
+
+            if (data.length === 0) {
+                listContainer.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 14px; padding: 24px 0;">No documents found in cloud.</div>';
+                return;
+            }
+
+            listContainer.innerHTML = data.map(doc => `
+                <div class="cloud-doc-item ${doc.id === currentDocumentId ? 'active' : ''}" onclick="loadCloudDocument('${doc.id}')">
+                    <div class="doc-info">
+                        <span class="doc-name">${doc.title || 'Untitled Document'}</span>
+                        <span class="doc-date">Last updated: ${new Date(doc.updated_at).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function saveToCloud() {
+            if (!currentUser) return;
+            
+            const saveBtn = document.getElementById('saveCloudBtn');
+            const titleInput = document.getElementById('documentTitle').value || 'Untitled Document';
+            const content = editor.getValue();
+            
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Saving...';
+            lucide.createIcons();
+
+            const docData = {
+                user_id: currentUser.id,
+                title: titleInput,
+                content: content,
+                updated_at: new Date().toISOString()
+            };
+
+            let response;
+            if (currentDocumentId) {
+                // Update existing
+                response = await supabase.from('documents').update(docData).eq('id', currentDocumentId);
+            } else {
+                // Insert new
+                response = await supabase.from('documents').insert([docData]).select();
+                if(response.data && response.data.length > 0) {
+                    currentDocumentId = response.data[0].id;
+                }
+            }
+
+            saveBtn.innerHTML = '<i data-lucide="cloud-check"></i> Saved';
+            lucide.createIcons();
+            setTimeout(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i data-lucide="cloud"></i> Save to Cloud';
+                lucide.createIcons();
+            }, 2000);
+
+            fetchCloudDocuments();
+        }
+
+        async function loadCloudDocument(id) {
+            const { data, error } = await supabase.from('documents').select('*').eq('id', id).single();
+            if (error || !data) {
+                alert("Could not load document.");
+                return;
+            }
+
+            currentDocumentId = data.id;
+            document.getElementById('documentTitle').value = data.title;
+            editor.setValue(data.content);
+            fetchCloudDocuments(); // Refresh list to highlight active
+        }
+
+        // --- Utility & UI ---
+        function loadTemplate(type) {
+            const code = `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\n\\title{New Document}\n\\author{Author Name}\n\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\nBegin writing here.\n\n\\end{document}`;
+            editor.setValue(code);
+            document.getElementById('documentTitle').value = 'Untitled Document';
+            currentDocumentId = null; // Unlink from cloud so it saves as new
+            fetchCloudDocuments();
+        }
+
+        function downloadTex() {
+            const text = editor.getValue();
+            const blob = new Blob([text], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = (document.getElementById('documentTitle').value || 'document') + '.tex';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         function setupResizer() {
             const resizer = document.getElementById('resizer');
@@ -711,8 +551,6 @@
             resizer.addEventListener('mousedown', () => {
                 isResizing = true;
                 resizer.classList.add('active');
-                document.body.style.cursor = 'col-resize';
-                // Prevent iframe from capturing mouse events during resize
                 previewPane.style.pointerEvents = 'none'; 
             });
 
@@ -720,24 +558,17 @@
                 if (isResizing) {
                     isResizing = false;
                     resizer.classList.remove('active');
-                    document.body.style.cursor = '';
                     previewPane.style.pointerEvents = '';
                 }
             });
 
             document.addEventListener('mousemove', (event) => {
                 if (!isResizing) return;
-                // Basic horizontal resizing for desktop
-                if (window.innerWidth > 1024) {
-                    const bounds = workspace.getBoundingClientRect();
-                    // Calculate percentage width based on mouse position relative to workspace container
-                    const newEditorWidth = ((event.clientX - bounds.left) / bounds.width) * 100;
-                    
-                    // Constrain between 20% and 80%
-                    if (newEditorWidth > 20 && newEditorWidth < 80) {
-                        editorPane.style.flex = `0 0 ${newEditorWidth}%`;
-                        previewPane.style.flex = `1 1 0%`; // Take remaining space
-                    }
+                const bounds = workspace.getBoundingClientRect();
+                const newEditorWidth = ((event.clientX - bounds.left) / bounds.width) * 100;
+                if (newEditorWidth > 20 && newEditorWidth < 80) {
+                    editorPane.style.flex = `0 0 ${newEditorWidth}%`;
+                    previewPane.style.flex = `1 1 0%`;
                 }
             });
         }
@@ -745,319 +576,53 @@
         function updateStatus(state, text) {
             const badge = document.getElementById('statusBadge');
             const icon = document.getElementById('statusIcon');
-            const textSpan = document.getElementById('statusText');
-            
             badge.className = `status-badge ${state}`;
-            textSpan.textContent = text;
+            document.getElementById('statusText').textContent = text;
             
-            // Update icons based on state
             icon.classList.remove('spin');
             if (state === 'idle') icon.setAttribute('data-lucide', 'check-circle');
-            if (state === 'compiling') {
-                icon.setAttribute('data-lucide', 'loader-2');
-                icon.classList.add('spin');
-            }
+            if (state === 'compiling') { icon.setAttribute('data-lucide', 'loader-2'); icon.classList.add('spin'); }
             if (state === 'success') icon.setAttribute('data-lucide', 'check-circle-2');
             if (state === 'error') icon.setAttribute('data-lucide', 'alert-circle');
-            
             lucide.createIcons();
         }
 
-        // --- File System & Upload Handling ---
-
-        function attachProjectInputHandlers() {
-            document.getElementById('fileInput').addEventListener('change', async (event) => {
-                await ingestFiles(event.target.files, false);
-                event.target.value = ''; // Reset
-            });
-
-            document.getElementById('folderInput').addEventListener('change', async (event) => {
-                await ingestFiles(event.target.files, true);
-                event.target.value = ''; // Reset
-            });
-        }
-
-        function setupDragAndDrop() {
-            const dropZone = document.getElementById('dropZone');
-
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, preventDefaults, false);
-                document.body.addEventListener(eventName, preventDefaults, false);
-            });
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-            });
-
-            dropZone.addEventListener('drop', async (e) => {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                if(files.length) {
-                    await ingestFiles(files, false);
-                }
-            });
-        }
-
-        function sanitizeProjectPath(path) {
-            return String(path || '').replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\/+/, '');
-        }
-
-        function getFileIcon(filename) {
-            const ext = filename.split('.').pop().toLowerCase();
-            if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) return 'image';
-            if (['tex', 'sty', 'cls', 'bib'].includes(ext)) return 'file-code';
-            return 'file-text';
-        }
-
-        function formatBytes(bytes) {
-            if (!bytes) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-        }
-
-        function arrayBufferToBase64(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let binary = '';
-            const chunkSize = 0x8000; // process in chunks to prevent stack overflow
-            for (let index = 0; index < bytes.length; index += chunkSize) {
-                binary += String.fromCharCode.apply(null, bytes.subarray(index, index + chunkSize));
-            }
-            return btoa(binary);
-        }
-
-        async function fileToAttachment(file, pathOverride) {
-            const buffer = await file.arrayBuffer();
-            return {
-                path: sanitizeProjectPath(pathOverride || file.webkitRelativePath || file.name),
-                contentBase64: arrayBufferToBase64(buffer),
-                size: file.size
-            };
-        }
-
-        async function ingestFiles(fileList, preserveRelativePaths) {
-            const files = Array.from(fileList || []);
-            let foundMainTex = false;
-
-            for (const file of files) {
-                const attachment = await fileToAttachment(file, preserveRelativePaths ? file.webkitRelativePath || file.name : file.name);
-                if (attachment.path) {
-                    // Check if they uploaded a .tex file, maybe set it to editor if it's main
-                    if (attachment.path.toLowerCase().endsWith('.tex') && 
-                       (/(^|\/)main\.tex$/i.test(attachment.path) || /(^|\/)document\.tex$/i.test(attachment.path))) {
-                        // Decoded base64 to put in editor instead of bundle
-                        const text = atob(attachment.contentBase64);
-                        editor.setValue(text);
-                        foundMainTex = true;
-                    } else {
-                        projectFiles.set(attachment.path, attachment);
-                    }
-                }
-            }
-            
-            ensureSupportFiles();
-            renderAttachmentList();
-        }
-
-        function clearProjectFiles() {
-            projectFiles.clear();
-            renderAttachmentList();
-        }
-
-        function removeProjectFile(path) {
-            projectFiles.delete(path);
-            renderAttachmentList();
-        }
-
-        function renderAttachmentList() {
-            const attachmentList = document.getElementById('attachmentList');
-            const fileCount = document.getElementById('fileCount');
-            const entries = Array.from(projectFiles.values());
-            
-            fileCount.textContent = entries.length;
-
-            if (entries.length === 0) {
-                attachmentList.innerHTML = '<div class="empty-files">No supporting files added.</div>';
-                return;
-            }
-
-            attachmentList.innerHTML = entries.map((file) => {
-                const iconName = getFileIcon(file.path);
-                const sizeText = file.size ? formatBytes(file.size) : 'bundle';
-                const safePath = String(file.path).replace(/"/g, '&quot;');
-                
-                return `
-                    <div class="file-item" title="${safePath}">
-                        <div class="file-item-info">
-                            <i data-lucide="${iconName}"></i>
-                            <span class="file-item-name">${safePath}</span>
-                            <span style="color: var(--text-light); font-size: 11px;">(${sizeText})</span>
-                        </div>
-                        <button class="file-item-delete" onclick="removeProjectFile('${safePath}')" title="Remove File">
-                            <i data-lucide="trash-2"></i>
-                        </button>
-                    </div>
-                `;
-            }).join('');
-            
-            lucide.createIcons();
-        }
-
-        // --- Template Generation & Handling ---
-
-        function createSampleBannerBase64() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 420; canvas.height = 220;
-            const ctx = canvas.getContext('2d');
-            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            grad.addColorStop(0, '#3b82f6');
-            grad.addColorStop(1, '#8b5cf6');
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(20, 20, 380, 180);
-            ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(210, 110, 30, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#10b981'; ctx.fillRect(90, 130, 240, 10);
-            ctx.fillStyle = '#ef4444'; ctx.fillRect(110, 150, 200, 10);
-            return canvas.toDataURL('image/png').split(',')[1];
-        }
-
-        function loadTemplate(type) {
-            const bannerB64 = createSampleBannerBase64();
-            
-            const templates = {
-                minimal: {
-                    latex: `\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\n\\title{My First LaTeX Document}\n\\author{Your Name}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\nThis is my first LaTeX document. I can write mathematics like $E = mc^2$ inline.\n\n\\section{Mathematics}\nHere's a display equation:\n\\[\n\\int_0^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}\n\\]\n\n\\section{Lists}\n\\begin{enumerate}\n  \\item First item\n  \\item Second item\n  \\item Third item\n\\end{enumerate}\n\\end{document}`,
-                    files: []
-                },
-                imageArticle: {
-                    latex: `\\documentclass[11pt]{article}\n\\usepackage[margin=1in]{geometry}\n\\usepackage{graphicx}\n\\usepackage{amsmath}\n\n\\title{Bundled Project With Images}\n\\author{Author Name}\n\\begin{document}\n\\maketitle\n\n\\section{Overview}\nThis template shows how a project can include an image.\n\n\\begin{figure}[ht]\n    \\centering\n    \\includegraphics[width=0.8\\linewidth]{assets/sample.png}\n    \\caption{A bundled image staged alongside the main source file.}\n\\end{figure}\n\n\\end{document}`,
-                    files: [{ path: 'assets/sample.png', contentBase64: bannerB64, size: 0 }]
-                },
-                beamer: {
-                    latex: `\\documentclass{beamer}\n\\usetheme{Madrid}\n\n\\title{Presentation Title}\n\\author{Your Name}\n\\begin{document}\n\\frame{\\titlepage}\n\n\\begin{frame}\n  \\frametitle{Slide 1: Introduction}\n  \\begin{itemize}\n    \\item First point\n    \\item Second point\n  \\end{itemize}\n\\end{frame}\n\\end{document}`,
-                    files: []
-                },
-                report: {
-                    latex: `\\documentclass{report}\n\\title{Report Title}\n\\author{Your Name}\n\\begin{document}\n\\maketitle\n\\tableofcontents\n\\chapter{Introduction}\nContent goes here.\n\\end{document}`, files: []
-                },
-                letter: {
-                    latex: `\\documentclass{letter}\n\\signature{Your Name}\n\\address{123 Street \\\\ City, ST 12345}\n\\begin{document}\n\\begin{letter}{Recipient \\\\ Address}\n\\opening{Dear Recipient,}\nLetter body here.\n\\closing{Sincerely,}\n\\end{letter}\n\\end{document}`, files: []
-                },
-                imageReport: {
-                    latex: `\\documentclass{report}\n\\usepackage{graphicx}\n\\begin{document}\n\\chapter{Summary}\n\\begin{figure}[h]\n\\centering\n\\includegraphics[width=0.5\\linewidth]{img.png}\n\\end{figure}\n\\end{document}`,
-                    files: [{ path: 'img.png', contentBase64: bannerB64, size: 0 }]
-                }
-            };
-
-            const tpl = templates[type] || templates.minimal;
-            editor.setValue(tpl.latex);
-            
-            projectFiles.clear();
-            if (tpl.files && tpl.files.length) {
-                tpl.files.forEach(f => projectFiles.set(f.path, f));
-            }
-            
-            ensureSupportFiles();
-            renderAttachmentList();
-            editor.focus();
-            document.getElementById('templateDropdown').classList.remove('active');
-        }
-
-        function ensureSupportFiles() {
-            const latexText = editor ? editor.getValue() : '';
-            const referencesApacite = /\\usepackage\{apacite\}|\\bibliographystyle\{apacite\}|\\shortcite[A-Za-z]*\{|\\citeA\{|\\citeNP\{|\\citeyear\{/.test(latexText);
-            
-            let filesAdded = false;
-            
-            if (referencesApacite && !projectFiles.has('apacite.sty')) {
-                projectFiles.set('apacite.sty', {
-                    path: 'apacite.sty',
-                    content: supportFileTemplates['apacite.sty'],
-                    size: supportFileTemplates['apacite.sty'].length
-                });
-                filesAdded = true;
-            }
-            
-            if (filesAdded) {
-                renderAttachmentList();
-            }
-        }
-
-        // --- Compilation & API Logic ---
-
-        function getProjectFilePayload() {
-            return Array.from(projectFiles.values()).map(file => ({
-                path: file.path,
-                content: file.content,
-                contentBase64: file.contentBase64,
-                base64: file.base64,
-                size: file.size
-            }));
-        }
-
+        // --- Compilation ---
         async function compileLatex() {
             const latexCode = editor.getValue();
-            if (!latexCode.trim()) {
-                updateStatus('error', 'Editor is empty');
-                return;
-            }
+            if (!latexCode.trim()) { updateStatus('error', 'Editor is empty'); return; }
 
             updateStatus('compiling', 'Compiling...');
-            const compileBtn = document.getElementById('compileBtn');
-            compileBtn.disabled = true;
-            
-            // Clear previous errors from preview pane
-            const existingError = document.querySelector('.error-message');
-            if (existingError) existingError.remove();
+            document.getElementById('compileBtn').disabled = true;
 
             try {
-                ensureSupportFiles();
-                
-                const response = await fetch(compileEndpoint, {
+                const response = await fetch(COMPILE_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        latex: latexCode, 
-                        files: getProjectFilePayload() 
-                    })
+                    body: JSON.stringify({ latex: latexCode })
                 });
 
                 const payload = await response.json().catch(() => null);
                 
                 if (!response.ok || !payload || payload.success !== true) {
-                    const errorText = payload?.error || `Compilation failed (HTTP ${response.status})`;
-                    const detailsText = payload?.details ? `\n\n${payload.details}` : '';
-                    showErrorLog(`${errorText}${detailsText}`);
                     updateStatus('error', 'Compilation failed');
+                    alert(payload?.error || "Server error");
                 } else {
                     displayPDF(payload.pdf);
                     updateStatus('success', 'Success');
                 }
             } catch (error) {
-                showErrorLog(`Connection Error: ${error.message}\n\nEnsure backend server is running on ${compileEndpoint}`);
                 updateStatus('error', 'Server offline');
+                alert("Could not connect to compiler.");
             } finally {
-                compileBtn.disabled = false;
+                document.getElementById('compileBtn').disabled = false;
             }
         }
 
         function displayPDF(base64PDF) {
             const viewer = document.getElementById('pdfViewer');
+            if (currentPDFUrl) URL.revokeObjectURL(currentPDFUrl);
             
-            if (currentPDFUrl) {
-                URL.revokeObjectURL(currentPDFUrl);
-            }
-
-            // Convert Base64 to Blob
             const binary = atob(base64PDF);
             const array = new Uint8Array(binary.length);
             for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
@@ -1067,74 +632,18 @@
             currentPDF = base64PDF;
 
             viewer.innerHTML = `<iframe class="pdf-frame" src="${currentPDFUrl}#toolbar=0" title="PDF Preview"></iframe>`;
-            
-            // Enable actions
-            document.getElementById('viewBtn').disabled = false;
-            document.getElementById('downloadBtn').disabled = false;
-        }
-
-        function showErrorLog(message) {
-            const viewer = document.getElementById('pdfViewer');
-            // Check if frame exists to overlay error, else replace content
-            const frameExists = viewer.querySelector('.pdf-frame');
-            
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.textContent = message;
-
-            if (frameExists) {
-                viewer.appendChild(errorDiv);
-            } else {
-                viewer.innerHTML = '';
-                viewer.appendChild(errorDiv);
-            }
-        }
-
-        function clearEditor() {
-            if (confirm('Clear editor and remove all files?')) {
-                editor.setValue('');
-                clearProjectFiles();
-                
-                // Reset Preview
-                const viewer = document.getElementById('pdfViewer');
-                viewer.innerHTML = `
-                    <div class="placeholder-state">
-                        <i data-lucide="file-check-2"></i>
-                        <h3>Document Ready</h3>
-                        <p>Write your LaTeX code in the editor and click Compile to view the rendered PDF.</p>
-                    </div>
-                `;
-                lucide.createIcons();
-                
-                if (currentPDFUrl) URL.revokeObjectURL(currentPDFUrl);
-                currentPDFUrl = null;
-                currentPDF = null;
-                
-                document.getElementById('viewBtn').disabled = true;
-                document.getElementById('downloadBtn').disabled = true;
-                updateStatus('idle', 'Ready');
-            }
+            document.getElementById('downloadPdfBtn').disabled = false;
         }
 
         function downloadPDF() {
             if (!currentPDF) return;
             const link = document.createElement('a');
             link.href = `data:application/pdf;base64,${currentPDF}`;
-            link.download = 'document.pdf';
+            link.download = (document.getElementById('documentTitle').value || 'document') + '.pdf';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
-
-        function openPDFInNewTab() {
-            if (!currentPDFUrl) return;
-            window.open(currentPDFUrl, '_blank', 'noopener,noreferrer');
-        }
-
-        // Refresh editor sizing on window resize to prevent layout bugs
-        window.addEventListener('resize', () => {
-            if (editor) editor.refresh();
-        });
     </script>
 </body>
 </html>
