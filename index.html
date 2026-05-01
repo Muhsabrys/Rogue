@@ -3,408 +3,585 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RogueTeX Cloud</title>
+    <title>RogueTeX Studio — Professional LaTeX Environment</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=JetBrains+Mono:wght@400;500&display=swap">
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-ocean.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/stex/stex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- PDF.js — gives us pixel-level canvas control needed for click-to-source -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
 <style>
-    :root {
-        --bg-body: #f1f5f9; --bg-surface: #ffffff; --bg-panel: #f8fafc;
-        --border-light: #cbd5e1; --text-main: #0f172a; --text-muted: #475569;
-        --accent-primary: #2563eb; --accent-success: #059669; --accent-danger: #dc2626;
-        --accent-warning: #d97706;
-        --radius-md: 6px; --font-sans: 'Inter', sans-serif;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); font-size: 16px; }
-    body { background: var(--bg-body); height: 100vh; display: flex; overflow: hidden; }
-    .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
+/* ─── Design System ─────────────────────────────────────────── */
+:root {
+    --bg-app:         #09090b;
+    --bg-sidebar:     #111114;
+    --bg-panel:       #18181b;
+    --bg-elevated:    #222226;
+    --bg-input:       #0c0c0e;
+    
+    --accent:         #3b82f6;
+    --accent-hover:   #60a5fa;
+    --accent-soft:    rgba(59, 130, 246, 0.1);
+    
+    --text-primary:   #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted:     #52525b;
+    --text-dim:       #3f3f46;
 
-    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fff; border-bottom: 2px solid var(--border-light); flex-shrink: 0; }
-    .brand h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
-    .auth-zone { display: flex; align-items: center; gap: 16px; font-weight: 600; }
+    --border-light:   rgba(255, 255, 255, 0.04);
+    --border-medium:  rgba(255, 255, 255, 0.08);
+    --border-strong:  rgba(255, 255, 255, 0.12);
 
-    .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border-light); gap: 12px; flex-shrink: 0; }
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: 14px; font-weight: 600; border-radius: var(--radius-md); border: 1px solid var(--border-light); cursor: pointer; transition: 0.2s; background: #fff; color: var(--text-main); white-space: nowrap; }
-    .btn:hover { border-color: #94a3b8; background: #f8fafc; }
-    .btn-primary { background: var(--accent-primary); color: #fff; border: none; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-success { background: var(--accent-success); color: #fff; border: none; }
-    .btn-success:hover { background: #047857; }
-    .btn-danger { background: var(--accent-danger); color: #fff; border: none; }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
-    .title-input { flex: 1; padding: 9px 14px; font-size: 15px; font-weight: 600; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: #fff; min-width: 0; }
+    --radius-sm:      6px;
+    --radius-md:      8px;
+    --radius-lg:      12px;
 
-    .workspace { display: flex; flex: 1; min-height: 0; }
+    --font-sans:      'Geist', system-ui, -apple-system, sans-serif;
+    --font-mono:      'JetBrains Mono', monospace;
 
-    /* ── Project sidebar ── */
-    .sidebar-projects { width: 240px; background: var(--bg-panel); border-right: 2px solid var(--border-light); display: flex; flex-direction: column; flex-shrink: 0; }
-    .sidebar-projects-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 8px; }
-    .sidebar-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
-    .sidebar-projects-list { flex: 1; overflow-y: auto; padding: 8px; }
-    .new-project-group { display: flex; gap: 4px; }
-    .new-project-group .btn { flex: 1; justify-content: center; font-size: 13px; padding: 8px 10px; }
-    .dropdown-wrapper { position: relative; }
-    .dropdown-toggle { padding: 8px 10px !important; }
-    .dropdown-menu { position: absolute; top: calc(100% + 4px); right: 0; background: #fff; border: 1px solid var(--border-light); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 200; min-width: 210px; overflow: hidden; display: none; }
-    .dropdown-menu.open { display: block; }
-    .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-main); transition: 0.15s; }
-    .dropdown-item:hover { background: #f0f7ff; color: var(--accent-primary); }
-    .project-item { padding: 10px 12px; border-radius: var(--radius-md); margin-bottom: 4px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.15s; color: var(--text-main); border: 1px solid transparent; }
-    .project-item:hover { background: #f0f7ff; border-color: #bfdbfe; }
-    .project-item.active { background: #eff6ff; border-color: var(--accent-primary); font-weight: 600; color: var(--accent-primary); }
-    .project-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .project-item-delete { flex-shrink: 0; background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 2px; border-radius: 4px; display: none; line-height: 0; }
-    .project-item:hover .project-item-delete { display: block; }
-    .project-item-delete:hover { color: var(--accent-danger); background: #fee2e2; }
+    --shadow-card:    0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    --transition:     0.2s cubic-bezier(0.2, 0, 0, 1);
+}
 
-    /* ── Editor area ── */
-    .editor-area { flex: 1; display: flex; min-width: 0; }
-    .file-panel { width: 220px; background: #fff; border-right: 1px solid var(--border-light); display: flex; flex-direction: column; flex-shrink: 0; }
-    .file-panel-header { padding: 12px 14px; border-bottom: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 8px; }
-    .file-panel-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 7px 8px; }
-    .file-panel-body { flex: 1; overflow-y: auto; padding: 8px; }
-    .file-group { margin-bottom: 12px; }
-    .file-group-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; padding: 4px 6px 6px; display: flex; align-items: center; gap: 6px; }
-    .file-entry { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.15s; border: 1px solid transparent; color: var(--text-main); }
-    .file-entry:hover { background: #f8fafc; border-color: var(--border-light); }
-    .file-entry.active-file { background: #eff6ff; border-color: #bfdbfe; font-weight: 600; color: var(--accent-primary); }
-    .file-entry-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .file-entry-remove { flex-shrink: 0; background: transparent; border: none; color: #94a3b8; cursor: pointer; padding: 2px; border-radius: 3px; display: none; line-height: 0; }
-    .file-entry:hover .file-entry-remove { display: block; }
-    .file-entry-remove:hover { color: var(--accent-danger); }
-    .icon-tex { color: #2563eb; } .icon-bib { color: #059669; } .icon-img { color: #d97706; } .icon-other { color: #94a3b8; }
-    .editor-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-    .CodeMirror { flex: 1; height: 100% !important; font-family: 'JetBrains Mono', monospace !important; font-size: 14px !important; }
-    .CodeMirror-scroll { height: 100%; }
+/* ─── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box; margin: 0; padding: 0;
+    font-family: var(--font-sans); font-size: 13px;
+}
 
-    /* ── Preview pane ── */
-    .preview { width: 45%; background: #525659; border-left: 2px solid var(--border-light); display: flex; flex-direction: column; flex-shrink: 0; position: relative; overflow: hidden; }
-    .preview-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; background: #3c3f41; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; gap: 8px; }
-    .preview-toolbar-left { display: flex; align-items: center; gap: 8px; }
-    .preview-toolbar span { font-size: 12px; color: #ccc; font-weight: 500; }
-    .preview-toolbar .btn { padding: 4px 10px; font-size: 12px; background: #525659; border-color: #666; color: #eee; }
-    .preview-toolbar .btn:hover { background: #6b6f72; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-    /* SyncTeX indicator badge */
-    .synctex-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: #1e3a5f; color: #7dd3fc; border: 1px solid #2563eb44; font-weight: 600; }
-    .synctex-badge.active { background: #14532d; color: #86efac; border-color: #16a34a44; }
+body {
+    background: var(--bg-app);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
 
-    /* Page nav */
-    .page-nav { display: flex; align-items: center; gap:6px; }
-    .page-nav button { padding: 3px 8px; font-size: 12px; background: #525659; border: 1px solid #666; color: #eee; border-radius: 4px; cursor: pointer; }
-    .page-nav button:hover { background: #6b6f72; }
-    .page-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
-    .page-nav span { font-size: 12px; color: #ccc; min-width: 70px; text-align: center; }
+.app-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
 
-    /* PDF canvas viewport — scrollable */
-    #pdfViewport { flex: 1; overflow-y: auto; overflow-x: auto; background: #525659; display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 12px; }
-    #pdfViewport::-webkit-scrollbar { width: 8px; }
-    #pdfViewport::-webkit-scrollbar-track { background: #3c3f41; }
-    #pdfViewport::-webkit-scrollbar-thumb { background: #666; border-radius: 4px; }
+/* ─── Global Top Bar ────────────────────────────────────────── */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    height: 52px;
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-medium);
+    z-index: 100;
+}
 
-    /* Each page is a canvas wrapped in a positioned container for highlight overlay */
-    .pdf-page-wrap { position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5); cursor: crosshair; flex-shrink: 0; }
-    .pdf-page-wrap canvas { display: block; }
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    user-select: none;
+}
 
-    /* Click-flash highlight overlay on PDF */
-    .pdf-click-flash {
-        position: absolute; border: 2px solid #f59e0b;
-        background: rgba(245,158,11,0.18); border-radius: 3px;
-        pointer-events: none; transition: opacity 0.8s ease;
-        z-index: 5;
-    }
+.brand-mark {
+    width: 28px; height: 28px;
+    background: var(--text-primary);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+}
 
-    /* Editor → PDF highlight: a line in the PDF canvas (drawn via canvas 2D) */
+.brand-mark svg { width: 16px; height: 16px; color: black; stroke-width: 3; }
 
-    .preview-placeholder { display: flex; align-items: center; justify-content: center; flex: 1; color: #aaa; flex-direction: column; gap: 12px; padding: 32px; background: #525659; }
-    .preview-placeholder p { font-size: 14px; color: #888; }
+.brand h1 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
 
-    /* Loading spinner */
-    #pdfLoadingOverlay { position: absolute; inset: 40px 0 0 0; background: rgba(82,86,89,0.92); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px; z-index: 20; }
-    #pdfLoadingOverlay.show { display: flex; }
-    #pdfLoadingOverlay p { font-size: 13px; color: #bbb; }
-    .pdf-spinner { width: 36px; height: 36px; border: 3px solid #555; border-top-color: #aaa; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.brand h1 span { color: var(--text-muted); font-weight: 400; margin-left: 2px; }
 
-    /* CodeMirror synctex highlight */
-    .cm-synctex-line { background: rgba(245,158,11,0.22) !important; }
-    .cm-synctex-line-fade { background: rgba(245,158,11,0.06) !important; transition: background 1s ease; }
+/* ─── Primary Toolbar ───────────────────────────────────────── */
+.toolbar {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--bg-app);
+    border-bottom: 1px solid var(--border-medium);
+    gap: 12px;
+}
 
-    /* Modals / overlays */
-    #authModal { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: none; align-items: center; justify-content: center; z-index: 999; }
-    #authModal.show { display: flex; }
-    .modal-content { background: white; padding: 40px; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-    .modal-content h2 { margin-bottom: 20px; font-size: 22px; font-weight: 700; }
-    .modal-content input { width: 100%; padding: 11px 14px; margin-bottom: 14px; border: 1px solid var(--border-light); border-radius: var(--radius-md); font-size: 14px; background: #fff; }
-    .modal-content input:focus { outline: 2px solid var(--accent-primary); border-color: transparent; }
-    #authError { color: var(--accent-danger); font-size: 13px; margin-top: 4px; min-height: 18px; }
-    #confirmModal { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-    #confirmModal.show { display: flex; }
-    .confirm-box { background: #fff; padding: 28px 32px; border-radius: 10px; max-width: 380px; width: 90%; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
-    .confirm-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-    .confirm-box p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
-    .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
-    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1e293b; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 2000; transition: transform 0.3s ease; pointer-events: none; white-space: nowrap; }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-    #uploadOverlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); display: none; align-items: center; justify-content: center; z-index: 1001; }
-    #uploadOverlay.show { display: flex; }
-    .upload-box { background: #fff; padding: 32px 40px; border-radius: 12px; text-align: center; min-width: 280px; }
-    .upload-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-    .upload-box p { font-size: 13px; color: var(--text-muted); }
-    .progress-bar-wrap { height: 6px; background: #e2e8f0; border-radius: 99px; margin-top: 16px; overflow: hidden; }
-    .progress-bar-fill { height: 100%; background: var(--accent-primary); border-radius: 99px; transition: width 0.2s; }
-    .empty-hint { font-size: 12px; color: var(--text-muted); padding: 8px 6px; }
+.title-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
 
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .spin { animation: spin 1s linear infinite; display: inline-block; }
+.title-input {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+    width: auto;
+    min-width: 200px;
+}
+
+.title-input:hover { background: var(--bg-panel); }
+.title-input:focus { outline: none; background: var(--bg-panel); box-shadow: 0 0 0 1px var(--border-strong); }
+
+.toolbar-actions { display: flex; align-items: center; gap: 6px; }
+
+/* ─── Buttons ─────────────────────────────────────────────────── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-medium);
+    cursor: pointer;
+    transition: all var(--transition);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+}
+
+.btn:hover {
+    background: #2a2a2e;
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    background: var(--text-primary);
+    color: var(--bg-app);
+    border: none;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background: #ffffff;
+    transform: scale(1.02);
+}
+
+.btn-success { color: #4ade80; border-color: rgba(74, 222, 128, 0.2); background: rgba(74, 222, 128, 0.05); }
+.btn-ghost { background: transparent; border: none; }
+.btn-ghost:hover { background: var(--bg-panel); }
+
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+/* ─── Main Workspace ────────────────────────────────────────── */
+.workspace { display: flex; flex: 1; min-height: 0; }
+
+/* Project Navigator (Leftmost) */
+.sidebar-projects {
+    width: 240px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-medium);
+    display: flex;
+    flex-direction: column;
+}
+
+.section-header {
+    padding: 16px 16px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sidebar-projects-list { flex: 1; overflow-y: auto; padding: 0 8px 16px; }
+
+.project-item {
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.project-item:hover { background: var(--bg-panel); color: var(--text-primary); }
+.project-item.active { background: var(--bg-elevated); color: var(--text-primary); font-weight: 500; }
+
+.project-item-delete {
+    margin-left: auto;
+    opacity: 0;
+    color: var(--text-dim);
+}
+.project-item:hover .project-item-delete { opacity: 1; }
+.project-item-delete:hover { color: #f87171; }
+
+/* File Explorer (Middle Sidebar) */
+.file-panel {
+    width: 200px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-medium);
+    display: flex;
+    flex-direction: column;
+}
+
+.file-group-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 700;
+    padding: 16px 12px 6px;
+    text-transform: uppercase;
+}
+
+.file-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.file-entry:hover { background: var(--bg-panel); color: var(--text-primary); }
+.file-entry.active-file {
+    background: var(--accent-soft);
+    color: var(--accent-hover);
+}
+
+/* ─── Editor Core ───────────────────────────────────────────── */
+.editor-area { flex: 1; display: flex; min-width: 0; background: #0f0f11; }
+.editor-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+.CodeMirror {
+    flex: 1;
+    height: 100% !important;
+    font-family: var(--font-mono) !important;
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+    padding: 10px 0;
+}
+
+.CodeMirror-gutters { background: transparent !important; border: none !important; }
+.CodeMirror-linenumber { color: var(--text-dim) !important; padding: 0 15px !important; }
+
+/* ─── Preview Panel ──────────────────────────────────────────── */
+.preview {
+    width: 42%;
+    background: #1c1c1f;
+    border-left: 1px solid var(--border-medium);
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-toolbar {
+    padding: 10px 16px;
+    background: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-medium);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preview-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+
+#pdfFrame { flex: 1; width: 100%; border: none; background: #27272a; }
+
+/* ─── Modals & Overlays ──────────────────────────────────────── */
+#authModal, #confirmModal, #uploadOverlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+#authModal.show, #confirmModal.show, #uploadOverlay.show { display: flex; }
+
+.modal-content, .confirm-box, .upload-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    width: 380px;
+    box-shadow: var(--shadow-card);
+    animation: zoomIn 0.2s ease-out;
+}
+
+@keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.modal-content h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.modal-content p { color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+
+.modal-content input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: white;
+    margin-bottom: 10px;
+    transition: var(--transition);
+}
+
+.modal-content input:focus { outline: none; border-color: var(--text-muted); }
+
+/* ─── Toast Notifications ────────────────────────────────────── */
+#toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--text-primary);
+    color: var(--bg-app);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 2000;
+    display: flex; align-items: center; gap: 8px;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ─── Helpers ────────────────────────────────────────────────── */
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.dropdown-menu {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    min-width: 180px;
+    display: none;
+    z-index: 100;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+}
+.dropdown-menu.open { display: block; }
+.dropdown-item {
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+.dropdown-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
 </style>
 </head>
 <body>
 
 <div class="app-container">
     <div class="topbar">
-        <div class="brand"><h1>RogueTeX</h1></div>
+        <div class="brand">
+            <div class="brand-mark"><i data-lucide="box"></i></div>
+            <h1>RogueTeX<span>Studio</span></h1>
+        </div>
         <div class="auth-zone" id="authZone"></div>
     </div>
 
     <div class="toolbar">
-        <input type="text" id="docTitleInput" class="title-input" value="Untitled Project" placeholder="Project title...">
-        <div style="display:flex;gap:8px;flex-shrink:0">
-            <button class="btn btn-primary" id="compileBtn" onclick="compile()">
-                <i data-lucide="play" style="width:16px;height:16px"></i> Compile
+        <div class="title-input-wrapper">
+            <i data-lucide="file-text" style="width:16px; color:var(--text-muted)"></i>
+            <input type="text" id="docTitleInput" class="title-input" value="Untitled Project">
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn btn-ghost" id="saveCloudBtn" onclick="saveToCloud()" disabled>
+                <i data-lucide="cloud-upload" style="width:16px"></i> Save
             </button>
-            <button class="btn" id="saveCloudBtn" onclick="saveToCloud()" disabled>
-                <i data-lucide="cloud" style="width:16px;height:16px"></i> Save
-            </button>
+            <div style="width:1px; height:20px; background:var(--border-medium); margin: 0 4px;"></div>
             <button class="btn" onclick="downloadTeX()">
-                <i data-lucide="download" style="width:16px;height:16px"></i> .tex
+                <i data-lucide="code-2" style="width:16px"></i> .tex
             </button>
-            <button class="btn btn-success" id="downloadPdfBtn" onclick="downloadPDF()" disabled>
-                <i data-lucide="file-down" style="width:16px;height:16px"></i> PDF
+            <button class="btn" id="downloadPdfBtn" onclick="downloadPDF()" disabled>
+                <i data-lucide="file-type-2" style="width:16px"></i> PDF
+            </button>
+            <button class="btn btn-primary" id="compileBtn" onclick="compile()">
+                <i data-lucide="play" style="width:14px; fill:currentColor"></i> Run
             </button>
         </div>
     </div>
 
     <div class="workspace">
-        <!-- Project list -->
+        <!-- Explorer: Projects -->
         <div class="sidebar-projects">
-            <div class="sidebar-projects-header">
-                <div class="sidebar-label">Projects</div>
-                <div class="new-project-group">
-                    <button class="btn btn-primary" onclick="newBlankProject()">
-                        <i data-lucide="plus" style="width:14px;height:14px"></i> New
+            <div class="section-header">
+                <span class="sidebar-label">Projects</span>
+                <button class="btn btn-ghost" style="padding:4px" onclick="newBlankProject()"><i data-lucide="plus" style="width:14px"></i></button>
+            </div>
+            <div class="sidebar-projects-list" id="cloudDocList"></div>
+            
+            <div style="padding: 16px; border-top: 1px solid var(--border-medium)">
+                <div class="dropdown-wrapper" style="position:relative">
+                    <button class="btn" style="width:100%" onclick="toggleDropdown()">
+                        <i data-lucide="import" style="width:14px"></i> Import Project
                     </button>
-                    <div class="dropdown-wrapper">
-                        <button class="btn btn-primary dropdown-toggle" onclick="toggleDropdown()" title="Import">
-                            <i data-lucide="chevron-down" style="width:14px;height:14px"></i>
-                        </button>
-                        <div class="dropdown-menu" id="importDropdown">
-                            <div class="dropdown-item" onclick="triggerImport('tex')">
-                                <i data-lucide="file-text" style="width:15px;height:15px;color:#2563eb"></i> Import .tex file
-                            </div>
-                            <div class="dropdown-item" onclick="triggerImport('folder')">
-                                <i data-lucide="folder-open" style="width:15px;height:15px;color:#d97706"></i> Import folder
-                            </div>
-                            <div class="dropdown-item" onclick="triggerImport('zip')">
-                                <i data-lucide="archive" style="width:15px;height:15px;color:#7c3aed"></i> Import .zip archive
-                            </div>
-                        </div>
+                    <div class="dropdown-menu" id="importDropdown">
+                        <div class="dropdown-item" onclick="triggerImport('tex')"><i data-lucide="file-text"></i> .tex File</div>
+                        <div class="dropdown-item" onclick="triggerImport('folder')"><i data-lucide="folder-archive"></i> Folder</div>
+                        <div class="dropdown-item" onclick="triggerImport('zip')"><i data-lucide="zip-file"></i> .zip Archive</div>
                     </div>
                 </div>
-            </div>
-            <div class="sidebar-projects-list" id="cloudDocList">
-                <div class="empty-hint">Sign in to sync projects...</div>
             </div>
         </div>
 
-        <!-- File panel + editor -->
-        <div class="editor-area">
-            <div class="file-panel">
-                <div class="file-panel-header">
-                    <div class="sidebar-label">Project Files</div>
-                    <div class="file-panel-actions" style="display:flex;gap:6px">
-                        <button class="btn" onclick="triggerAddFiles()">
-                            <i data-lucide="plus" style="width:13px;height:13px"></i> Add files
-                        </button>
-                    </div>
-                </div>
-                <div class="file-panel-body" id="filePanelBody">
-                    <div class="empty-hint">No files yet.</div>
-                </div>
+        <!-- Explorer: Project Files -->
+        <div class="file-panel">
+            <div class="section-header">
+                <span class="sidebar-label">Files</span>
+                <button class="btn btn-ghost" style="padding:4px" onclick="triggerAddFiles()"><i data-lucide="file-plus" style="width:14px"></i></button>
             </div>
+            <div class="file-panel-body" id="filePanelBody"></div>
+        </div>
+
+        <div class="editor-area">
             <div class="editor-column">
                 <textarea id="editor"></textarea>
             </div>
         </div>
 
-        <!-- PDF preview (PDF.js canvas-based) -->
+        <!-- Preview Pane -->
         <div class="preview" id="previewPane">
-            <!-- Toolbar -->
             <div class="preview-toolbar" id="previewToolbar" style="display:none">
-                <div class="preview-toolbar-left">
-                    <!-- Page navigation -->
-                    <div class="page-nav">
-                        <button onclick="pdfGoPage(-1)" id="prevPageBtn">◀</button>
-                        <span id="pageLabel">1 / 1</span>
-                        <button onclick="pdfGoPage(1)" id="nextPageBtn">▶</button>
-                    </div>
-                    <!-- Zoom -->
-                    <button class="btn" onclick="pdfZoom(-0.2)" title="Zoom out">−</button>
-                    <span style="font-size:12px;color:#ccc;min-width:38px;text-align:center" id="zoomLabel">100%</span>
-                    <button class="btn" onclick="pdfZoom(+0.2)" title="Zoom in">+</button>
-                    <!-- SyncTeX status -->
-                    <span class="synctex-badge" id="synctexBadge" title="Click PDF text → jumps to source line. Click editor line → highlights PDF location.">SyncTeX ✦</span>
+                <div class="preview-status">
+                    <div class="status-dot"></div>
+                    <span id="previewPageInfo">Live Preview</span>
                 </div>
-                <div style="display:flex;gap:6px">
-                    <button class="btn" onclick="downloadPDF()">
-                        <i data-lucide="download" style="width:13px;height:13px"></i> Save PDF
-                    </button>
+                <div style="display:flex;gap:4px">
+                    <button class="btn btn-ghost" style="padding:6px" onclick="reloadPdfFrame()"><i data-lucide="refresh-cw" style="width:14px"></i></button>
+                    <button class="btn btn-ghost" style="padding:6px" onclick="downloadPDF()"><i data-lucide="external-link" style="width:14px"></i></button>
                 </div>
             </div>
 
-            <!-- PDF loading spinner -->
-            <div id="pdfLoadingOverlay">
-                <div class="pdf-spinner"></div>
-                <p>Rendering PDF…</p>
+            <div id="pdfLoadingOverlay" style="position:absolute; inset:0; background:var(--bg-app); display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+                <div class="spin" style="width:32px; height:32px; border:2px solid var(--border-strong); border-top-color:var(--text-primary); border-radius:50%"></div>
+                <p style="font-weight:500; color:var(--text-secondary); font-size:12px">Compiling document...</p>
             </div>
 
-            <!-- Scrollable canvas viewport — all pages rendered here -->
-            <div id="pdfViewport" style="display:none"></div>
+            <iframe id="pdfFrame" style="display:none"></iframe>
 
-            <!-- Placeholder -->
-            <div class="preview-placeholder" id="previewPlaceholder">
-                <i data-lucide="eye" style="width:48px;height:48px;opacity:0.25;color:#aaa"></i>
-                <p>Compile to see the PDF preview</p>
+            <div class="preview-placeholder" id="previewPlaceholder" style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; padding:40px; text-align:center;">
+                <div style="width:48px; height:48px; background:var(--bg-panel); border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:16px">
+                    <i data-lucide="eye-off" style="width:20px; color:var(--text-dim)"></i>
+                </div>
+                <h3 style="color:var(--text-secondary); margin-bottom:8px; font-weight:600">No output yet</h3>
+                <p style="font-size:12px; color:var(--text-muted); max-width:200px">Run the compiler to see the rendered PDF here.</p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Auth modal -->
+<!-- Modals -->
 <div id="authModal">
     <div class="modal-content">
-        <h2>Scholar Sign In</h2>
-        <input type="email" id="authEmail" placeholder="Email address" autocomplete="email">
-        <input type="password" id="authPass" placeholder="Password" autocomplete="current-password">
-        <div id="authError"></div>
-        <button class="btn btn-primary" style="width:100%;margin-top:14px;justify-content:center" onclick="processAuth('login')">Log In</button>
-        <button class="btn" style="width:100%;margin-top:8px;justify-content:center;border:none" onclick="processAuth('signup')">Create Account</button>
-        <button class="btn" style="width:100%;margin-top:8px;justify-content:center;border:none;color:var(--text-muted)" onclick="toggleModal(false)">Cancel</button>
-    </div>
-</div>
-
-<!-- Confirm dialog -->
-<div id="confirmModal">
-    <div class="confirm-box">
-        <h3 id="confirmTitle">Are you sure?</h3>
-        <p id="confirmMsg"></p>
-        <div class="confirm-actions">
-            <button class="btn" onclick="resolveConfirm(false)">Cancel</button>
-            <button class="btn btn-danger" onclick="resolveConfirm(true)">Delete</button>
+        <h2 style="margin-bottom:8px">Welcome to Studio</h2>
+        <p>Sign in to sync your projects and access professional LaTeX tools.</p>
+        <div style="display:flex; flex-direction:column; gap:8px">
+            <input type="email" id="authEmail" placeholder="Email address">
+            <input type="password" id="authPass" placeholder="Password">
+        </div>
+        <div id="authError" style="color:#f87171; font-size:11px; margin: 8px 0;"></div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px">
+            <button class="btn btn-primary" onclick="processAuth('login')">Continue</button>
+            <button class="btn btn-ghost" onclick="processAuth('signup')">Create Account</button>
+            <button class="btn btn-ghost" style="color:var(--text-dim)" onclick="toggleModal(false)">Cancel</button>
         </div>
     </div>
 </div>
 
-<!-- Upload progress -->
+<div id="confirmModal">
+    <div class="confirm-box">
+        <h3>Delete Project?</h3>
+        <p id="confirmMsg">This action cannot be undone. All files associated with this project will be removed.</p>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px">
+            <button class="btn btn-ghost" onclick="resolveConfirm(false)">Cancel</button>
+            <button class="btn" style="color:#f87171; border-color:rgba(248,113,113,0.2)" onclick="resolveConfirm(true)">Confirm Delete</button>
+        </div>
+    </div>
+</div>
+
 <div id="uploadOverlay">
     <div class="upload-box">
-        <h3 id="uploadTitle">Importing…</h3>
-        <p id="uploadMsg"></p>
-        <div class="progress-bar-wrap">
-            <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+        <h3 id="uploadTitle">Uploading Assets</h3>
+        <p id="uploadMsg" style="margin-bottom:16px; font-size:12px; color:var(--text-secondary)"></p>
+        <div style="height:4px; background:var(--bg-input); border-radius:10px; overflow:hidden">
+            <div id="progressFill" style="height:100%; background:var(--text-primary); width:0%; transition:width 0.3s"></div>
         </div>
     </div>
 </div>
 
 <div id="toast"></div>
 
-<!-- Hidden file inputs -->
-<input type="file" id="importTexInput"    accept=".tex"        style="display:none" onchange="handleImportTex(this)">
+<!-- Hidden Logic Components -->
+<input type="file" id="importTexInput" accept=".tex" style="display:none" onchange="handleImportTex(this)">
 <input type="file" id="importFolderInput" webkitdirectory multiple style="display:none" onchange="handleImportFolder(this)">
-<input type="file" id="importZipInput"    accept=".zip"        style="display:none" onchange="handleImportZip(this)">
-<input type="file" id="addFilesInput"     multiple accept=".bib,.png,.jpg,.jpeg,.pdf,.sty,.cls,.tex" style="display:none" onchange="handleAddFiles(this)">
+<input type="file" id="importZipInput" accept=".zip" style="display:none" onchange="handleImportZip(this)">
+<input type="file" id="addFilesInput" multiple accept=".bib,.png,.jpg,.jpeg,.pdf,.sty,.cls,.tex" style="display:none" onchange="handleAddFiles(this)">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <script>
-/* ─── PDF.js worker setup ─────────────────────────────────── */
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
 lucide.createIcons();
 
-/* ─── Config ──────────────────────────────────────────────── */
 const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
 const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
-/* ─── App state ───────────────────────────────────────────── */
 let editor, currentUser, currentDocId;
 let projectFiles  = [];
 let activeTexName = null;
+let currentPdfBlobUrl = null;
 
-/* ─── PDF state ───────────────────────────────────────────── */
-let pdfDoc        = null;   // PDFDocumentProxy
-let pdfBytes      = null;   // Uint8Array — kept for download
-let pdfScale      = 1.5;    // current zoom
-let currentPage   = 1;
-let totalPages    = 0;
-let pageCanvases  = [];     // array of {canvas, wrap, textContent} per page
-let renderPending = false;
-
-/*
- * ════════════════════════════════════════════════════════════
- *  SyncTeX  (text-search heuristic)
- *
- *  True SyncTeX needs a .synctex file from the compiler.
- *  We implement a robust text-search heuristic instead:
- *
- *  PDF → Editor  (forward):
- *    1. PDF.js gives us the clicked canvas coordinates.
- *    2. We ask PDF.js for the text items on that page.
- *    3. We pick the text item whose bounding box contains
- *       the click point.
- *    4. We search the LaTeX source for the best matching
- *       line containing that word/phrase.
- *    5. We scroll CodeMirror to that line and flash it.
- *
- *  Editor → PDF  (inverse):
- *    1. On CodeMirror cursor change, take the word under
- *       the cursor (or current line text).
- *    2. Strip LaTeX commands to get the plain content words.
- *    3. Search every page's text layer for those words.
- *    4. Highlight the matching region on the canvas with
- *       a semi-transparent amber overlay.
- * ════════════════════════════════════════════════════════════
- */
-
-/* ─── Init ────────────────────────────────────────────────── */
 window.onload = () => {
     editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
-        mode: 'stex', theme: 'monokai', lineNumbers: true,
-        lineWrapping: true, extraKeys: { 'Ctrl-S': () => saveToCloud() }
+        mode: 'stex', 
+        theme: 'material-ocean',
+        lineNumbers: true,
+        lineWrapping: true,
+        extraKeys: {
+            'Ctrl-S': () => saveToCloud(),
+            'Ctrl-Enter': () => compile()
+        }
     });
-    loadBlankTemplate('MSA Research', 'Muhammad S. Abdo');
+    loadBlankTemplate('New Research Paper', 'Author Name');
     checkSession();
     lucide.createIcons();
     document.addEventListener('click', e => { if (!e.target.closest('.dropdown-wrapper')) closeDropdown(); });
-
-    // Editor → PDF: cursor activity triggers inverse sync
-    editor.on('cursorActivity', debounce(editorToPdf, 600));
 };
 
-/* ─── Auth ────────────────────────────────────────────────── */
 async function checkSession() {
     const { data: { session } } = await sb.auth.getSession();
     syncAuthUI(session?.user ?? null);
@@ -413,24 +590,26 @@ async function checkSession() {
 
 function syncAuthUI(user) {
     currentUser = user;
-    const zone    = document.getElementById('authZone');
+    const zone = document.getElementById('authZone');
     const saveBtn = document.getElementById('saveCloudBtn');
     if (user) {
-        zone.innerHTML = `<span style="font-size:13px;color:var(--text-muted)">${user.email}</span>
-            <button class="btn" onclick="signOut()">Sign Out</button>`;
+        zone.innerHTML = `<span style="font-size:12px; color:var(--text-muted); margin-right:12px">${user.email}</span>
+            <button class="btn btn-ghost" style="padding:4px 8px; font-size:11px" onclick="signOut()">Sign Out</button>`;
         saveBtn.disabled = false;
         fetchProjects();
     } else {
-        zone.innerHTML = '<button class="btn btn-primary" onclick="toggleModal(true)">Sign In</button>';
+        zone.innerHTML = '<button class="btn btn-primary" style="padding:4px 12px; font-size:12px" onclick="toggleModal(true)">Sign In</button>';
         saveBtn.disabled = true;
-        document.getElementById('cloudDocList').innerHTML = '<div class="empty-hint">Sign in to sync projects...</div>';
+        document.getElementById('cloudDocList').innerHTML = '<div style="font-size:11px; color:var(--text-dim); padding:20px; text-align:center;">Cloud sync disabled.</div>';
     }
     lucide.createIcons();
 }
+
 async function signOut() { await sb.auth.signOut(); }
+
 async function processAuth(mode) {
     const email = document.getElementById('authEmail').value.trim();
-    const pass  = document.getElementById('authPass').value;
+    const pass = document.getElementById('authPass').value;
     const errDiv = document.getElementById('authError');
     errDiv.textContent = '';
     try {
@@ -441,20 +620,20 @@ async function processAuth(mode) {
         toggleModal(false);
     } catch (err) { errDiv.textContent = err.message; }
 }
+
 function toggleModal(show) { document.getElementById('authModal').className = show ? 'show' : ''; }
 
-/* ─── Projects ────────────────────────────────────────────── */
 async function fetchProjects() {
     const { data, error } = await sb.from('documents').select('id, title').order('created_at', { ascending: false });
     const list = document.getElementById('cloudDocList');
-    if (error) { list.innerHTML = `<div style="color:var(--accent-danger);font-size:12px;padding:8px">${error.message}</div>`; return; }
-    if (!data.length) { list.innerHTML = '<div class="empty-hint">No projects yet.</div>'; return; }
+    if (error) { list.innerHTML = `<div style="color:var(--error);font-size:11px;padding:8px">${error.message}</div>`; return; }
+    if (!data.length) { list.innerHTML = '<div style="font-size:11px; color:var(--text-dim); padding:16px; text-align:center;">No cloud projects.</div>'; return; }
     list.innerHTML = data.map(d => `
         <div class="project-item" onclick="loadProject('${d.id}')" data-id="${d.id}">
-            <i data-lucide="folder" style="width:14px;height:14px;flex-shrink:0;color:#d97706"></i>
-            <span class="project-item-name">${d.title}</span>
+            <i data-lucide="folder" style="width:14px; color:var(--text-muted)"></i>
+            <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${d.title}</span>
             <button class="project-item-delete" onclick="deleteProject(event,'${d.id}','${d.title.replace(/'/g,"\\'")}')">
-                <i data-lucide="trash-2" style="width:13px;height:13px"></i>
+                <i data-lucide="x" style="width:12px"></i>
             </button>
         </div>`).join('');
     lucide.createIcons();
@@ -462,88 +641,79 @@ async function fetchProjects() {
 
 async function loadProject(id) {
     const { data, error } = await sb.from('documents').select('*').eq('id', id).single();
-    if (error || !data) { toast('Failed to load project', true); return; }
+    if (error || !data) { toast('Error loading project'); return; }
     currentDocId = data.id;
     projectFiles = data.assets || [];
     document.getElementById('docTitleInput').value = data.title;
     const mainTex = projectFiles.find(f => f.type === 'tex' && f.main) || projectFiles.find(f => f.type === 'tex');
     if (mainTex) { activeTexName = mainTex.name; editor.setValue(atob(mainTex.content)); }
-    else         { activeTexName = null; editor.setValue(data.content || ''); }
-    clearPdfPreview(); renderFilePanel(); highlightActiveProject(id);
+    else { activeTexName = null; editor.setValue(data.content || ''); }
+    clearPdfPreview();
+    renderFilePanel();
+    highlightActiveProject(id);
 }
 
 async function saveToCloud() {
     if (!currentUser) return;
     syncEditorToFile();
-    const title   = document.getElementById('docTitleInput').value.trim() || 'Untitled Project';
+    const title = document.getElementById('docTitleInput').value.trim() || 'Untitled Project';
     const saveBtn = document.getElementById('saveCloudBtn');
-    saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
+    saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px"></i> Syncing...';
     lucide.createIcons();
     const payload = { user_id: currentUser.id, title, content: editor.getValue(), assets: projectFiles };
     let res;
     if (currentDocId) { res = await sb.from('documents').update(payload).eq('id', currentDocId); }
     else { res = await sb.from('documents').insert([payload]).select(); if (res.data?.[0]) currentDocId = res.data[0].id; }
-    if (res.error) { toast('Save failed: ' + res.error.message, true); }
-    else { toast('Saved ✓'); fetchProjects(); highlightActiveProject(currentDocId); }
-    saveBtn.innerHTML = '<i data-lucide="cloud"></i> Save';
+    if (res.error) { toast('Cloud sync failed'); }
+    else { toast('Changes synced ✓'); fetchProjects(); highlightActiveProject(currentDocId); }
+    saveBtn.innerHTML = '<i data-lucide="cloud-upload" style="width:14px"></i> Save';
     lucide.createIcons();
 }
 
 function newBlankProject() {
     currentDocId = null; activeTexName = 'main.tex'; projectFiles = [];
     document.getElementById('docTitleInput').value = 'Untitled Project';
-    loadBlankTemplate('New Document', 'Your Name');
-    clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
+    loadBlankTemplate('New Document', 'Author');
+    clearPdfPreview();
+    renderFilePanel();
+    highlightActiveProject(null);
 }
 
 function loadBlankTemplate(title, author) {
-    const src =
-`\\documentclass[12pt]{article}
-\\usepackage[utf8]{inputenc}
-
-\\title{${title}}
-\\author{${author}}
-\\date{\\today}
-
-\\begin{document}
-\\maketitle
-
-\\section{Introduction}
-Write here...
-
-\\end{document}`;
+    const src = `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\n\\title{${title}}\n\\author{${author}}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{Abstract}\nStart your masterpiece here...\n\n\\end{document}`;
     editor.setValue(src);
     upsertTexFile('main.tex', src, true);
 }
 
-/* ─── Import ──────────────────────────────────────────────── */
 function triggerImport(type) {
     closeDropdown();
-    document.getElementById({ tex:'importTexInput', folder:'importFolderInput', zip:'importZipInput' }[type]).click();
+    document.getElementById({ tex: 'importTexInput', folder: 'importFolderInput', zip: 'importZipInput' }[type]).click();
 }
+
 function handleImportTex(input) {
     const file = input.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = e => {
         currentDocId = null; activeTexName = file.name; projectFiles = [];
-        document.getElementById('docTitleInput').value = file.name.replace(/\.tex$/i,'');
+        document.getElementById('docTitleInput').value = file.name.replace(/\.tex$/i, '');
         editor.setValue(e.target.result);
         upsertTexFile(file.name, e.target.result, true);
         clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
-        toast(`Imported ${file.name}`);
+        toast(`Project ready: ${file.name}`);
     };
     reader.readAsText(file); input.value = '';
 }
+
 async function handleImportFolder(input) {
     const files = Array.from(input.files); if (!files.length) return;
-    showUploadOverlay('Importing folder…', files.length);
+    showUploadOverlay('Importing Folder', files.length);
     currentDocId = null; projectFiles = [];
     const folderName = files[0].webkitRelativePath.split('/')[0];
     document.getElementById('docTitleInput').value = folderName;
     let mainTex = null, done = 0;
     for (const file of files) {
         const base64 = await fileToBase64(file);
-        const type   = classifyFile(file.name);
+        const type = classifyFile(file.name);
         const isMain = !mainTex && type === 'tex';
         if (isMain) mainTex = file.name;
         projectFiles.push({ name: file.name, content: base64, type, main: isMain });
@@ -551,21 +721,23 @@ async function handleImportFolder(input) {
     }
     if (mainTex) { activeTexName = mainTex; editor.setValue(atob(projectFiles.find(f => f.name === mainTex).content)); }
     hideUploadOverlay(); clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
-    toast(`Imported ${files.length} file(s) from "${folderName}"`); input.value = '';
+    toast('Folder imported');
+    input.value = '';
 }
+
 async function handleImportZip(input) {
     const file = input.files[0]; if (!file) return;
-    showUploadOverlay('Extracting ZIP…', 100);
+    showUploadOverlay('Extracting Project', 100);
     try {
-        const zip     = await JSZip.loadAsync(file);
+        const zip = await JSZip.loadAsync(file);
         const entries = Object.values(zip.files).filter(f => !f.dir);
         currentDocId = null; projectFiles = [];
-        document.getElementById('docTitleInput').value = file.name.replace(/\.zip$/i,'');
+        document.getElementById('docTitleInput').value = file.name.replace(/\.zip$/i, '');
         let mainTex = null, done = 0;
         for (const entry of entries) {
             const isBin = isBinaryPath(entry.name);
-            const data  = isBin ? await entry.async('base64') : btoa(unescape(encodeURIComponent(await entry.async('string'))));
-            const type  = classifyFile(entry.name);
+            const data = isBin ? await entry.async('base64') : btoa(unescape(encodeURIComponent(await entry.async('string'))));
+            const type = classifyFile(entry.name);
             const isMain = !mainTex && type === 'tex';
             if (isMain) mainTex = entry.name;
             projectFiles.push({ name: entry.name, content: data, type, main: isMain });
@@ -573,465 +745,157 @@ async function handleImportZip(input) {
         }
         if (mainTex) { activeTexName = mainTex; editor.setValue(atob(projectFiles.find(f => f.name === mainTex).content)); }
         hideUploadOverlay(); clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
-        toast(`Extracted ${entries.length} file(s) from "${file.name}"`);
-    } catch (err) { hideUploadOverlay(); toast('ZIP error: ' + err.message, true); }
+        toast('Archive extracted');
+    } catch (err) { hideUploadOverlay(); toast('Error extracting archive'); }
     input.value = '';
 }
+
 function triggerAddFiles() { document.getElementById('addFilesInput').click(); }
+
 async function handleAddFiles(input) {
     for (const file of Array.from(input.files)) {
         const base64 = await fileToBase64(file);
-        const type   = classifyFile(file.name);
-        const idx    = projectFiles.findIndex(f => f.name === file.name);
-        const entry  = { name: file.name, content: base64, type, main: false };
+        const type = classifyFile(file.name);
+        const idx = projectFiles.findIndex(f => f.name === file.name);
+        const entry = { name: file.name, content: base64, type, main: false };
         if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
         if (type === 'tex') openTexInEditor(file.name);
     }
-    renderFilePanel(); toast(`Added ${input.files.length} file(s)`); input.value = '';
+    renderFilePanel(); toast('Files added'); input.value = '';
 }
 
-/* ─── File panel ──────────────────────────────────────────── */
 function renderFilePanel() {
-    const body  = document.getElementById('filePanelBody');
-    const tex   = projectFiles.filter(f => f.type === 'tex');
-    const bib   = projectFiles.filter(f => f.type === 'bib');
-    const img   = projectFiles.filter(f => f.type === 'img');
+    const body = document.getElementById('filePanelBody');
+    const tex = projectFiles.filter(f => f.type === 'tex');
+    const bib = projectFiles.filter(f => f.type === 'bib');
+    const img = projectFiles.filter(f => f.type === 'img');
     const other = projectFiles.filter(f => f.type === 'other');
-    if (!projectFiles.length) { body.innerHTML = '<div class="empty-hint">No files yet.</div>'; return; }
+    if (!projectFiles.length) { body.innerHTML = '<div style="font-size:10px; color:var(--text-dim); padding:12px;">No assets in project.</div>'; return; }
     let html = '';
-    if (tex.length)   html += fileGroup('TeX Sources',  tex,   'file-text', 'icon-tex');
-    if (bib.length)   html += fileGroup('Bibliography', bib,   'book',      'icon-bib');
-    if (img.length)   html += fileGroup('Images',       img,   'image',     'icon-img');
-    if (other.length) html += fileGroup('Other',        other, 'paperclip', 'icon-other');
-    body.innerHTML = html; lucide.createIcons();
+    if (tex.length) html += fileGroup('Source', tex, 'file-text');
+    if (bib.length) html += fileGroup('References', bib, 'book-open');
+    if (img.length) html += fileGroup('Assets', img, 'image');
+    if (other.length) html += fileGroup('Build', other, 'settings');
+    body.innerHTML = html;
+    lucide.createIcons();
 }
-function fileGroup(label, files, icon, iconClass) {
+
+function fileGroup(label, files, icon) {
     return `<div class="file-group">
-        <div class="file-group-label"><i data-lucide="${icon}" style="width:11px;height:11px"></i>${label}</div>
+        <div class="file-group-label">${label}</div>
         ${files.map(f => `
-        <div class="file-entry ${f.name===activeTexName?'active-file':''}" ${f.type==='tex'?`onclick="openTexInEditor('${f.name}')"`:''} title="${f.name}">
-            <i data-lucide="${icon}" style="width:13px;height:13px;flex-shrink:0" class="${iconClass}"></i>
-            <span class="file-entry-name">${f.name}${f.main?' <span style="font-size:10px;color:var(--accent-primary);font-weight:700">[main]</span>':''}</span>
-            <button class="file-entry-remove" onclick="removeProjectFile(event,'${f.name}')" title="Remove">
-                <i data-lucide="x" style="width:12px;height:12px"></i>
+        <div class="file-entry ${f.name === activeTexName ? 'active-file' : ''}" ${f.type === 'tex' ? `onclick="openTexInEditor('${f.name}')"` : ''}>
+            <i data-lucide="${icon}" style="width:14px"></i>
+            <span style="flex:1; overflow:hidden; text-overflow:ellipsis">${f.name}</span>
+            <button class="btn btn-ghost" style="padding:2px; height:auto; color:var(--text-dim)" onclick="removeProjectFile(event,'${f.name}')">
+                <i data-lucide="x" style="width:12px"></i>
             </button>
         </div>`).join('')}
     </div>`;
 }
+
 function openTexInEditor(name) {
     syncEditorToFile();
     const entry = projectFiles.find(f => f.name === name);
     if (!entry) return;
-    activeTexName = name; editor.setValue(atob(entry.content)); renderFilePanel();
+    activeTexName = name;
+    editor.setValue(atob(entry.content));
+    renderFilePanel();
 }
+
 function removeProjectFile(event, name) {
     event.stopPropagation();
     projectFiles.splice(projectFiles.findIndex(f => f.name === name), 1);
     if (name === activeTexName) { activeTexName = null; editor.setValue(''); }
-    renderFilePanel(); toast(`Removed ${name}`);
-}
-async function deleteProject(event, id, title) {
-    event.stopPropagation();
-    if (!await confirm(`Delete "${title}"?`, 'This project will be permanently removed.')) return;
-    const { error } = await sb.from('documents').delete().eq('id', id);
-    if (error) { toast('Delete failed: ' + error.message, true); return; }
-    if (currentDocId === id) newBlankProject();
-    fetchProjects(); toast(`Deleted "${title}"`);
+    renderFilePanel(); toast(`Removed: ${name}`);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   COMPILE
-   ═══════════════════════════════════════════════════════════ */
+async function deleteProject(event, id, title) {
+    event.stopPropagation();
+    if (!await confirm(`Delete Project`, `This will permanently remove "${title}" from your account.`)) return;
+    const { error } = await sb.from('documents').delete().eq('id', id);
+    if (error) { toast('Failed to delete'); return; }
+    if (currentDocId === id) newBlankProject();
+    fetchProjects(); toast('Project deleted');
+}
+
 async function compile() {
     syncEditorToFile();
     const btn = document.getElementById('compileBtn');
-    btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Compiling…';
+    btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px"></i> Running';
     btn.disabled = true;
     lucide.createIcons();
-
     try {
         const res = await fetch(COMPILE_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 latex: editor.getValue(),
-                files: projectFiles
-                    .filter(f => !(f.type === 'tex' && f.name === activeTexName))
-                    .map(f => ({ path: f.name, contentBase64: f.content }))
+                files: projectFiles.filter(f => !(f.type === 'tex' && f.name === activeTexName)).map(f => ({ path: f.name, contentBase64: f.content }))
             })
         });
         const data = await res.json();
-
-        if (data.pdf) {
-            await loadPdfFromBase64(data.pdf);
-        } else {
+        if (data.pdf) { renderPdf(data.pdf); }
+        else {
             clearPdfPreview();
-            const ph = document.getElementById('previewPlaceholder');
-            ph.innerHTML = `<div style="padding:20px;color:var(--accent-danger);width:100%">
-                <strong>Compilation Error</strong>
-                <pre style="white-space:pre-wrap;margin-top:10px;font-size:12px;font-family:'JetBrains Mono',monospace;color:#fca5a5">${data.log || data.error}</pre>
-            </div>`;
-            ph.style.display = 'block';
+            document.getElementById('previewPlaceholder').innerHTML = `<div style="padding:32px; color:#f87171; text-align:left"><h4 style="margin-bottom:12px; font-weight:700">Compile Error</h4><pre style="background:rgba(0,0,0,0.3); padding:16px; border-radius:8px; font-size:11px; font-family:var(--font-mono); overflow:auto; border:1px solid rgba(248,113,113,0.1)">${data.log || data.error}</pre></div>`;
         }
-    } catch (err) {
-        clearPdfPreview();
-        const ph = document.getElementById('previewPlaceholder');
-        ph.innerHTML = `<div style="padding:20px;color:var(--accent-danger);width:100%">
-            <strong>Network Error</strong><p style="margin-top:8px;font-size:13px">${err.message}</p>
-        </div>`;
-        ph.style.display = 'block';
-    }
-
-    btn.innerHTML = '<i data-lucide="play"></i> Compile';
+    } catch (err) { toast('Compiler unreachable'); }
+    btn.innerHTML = '<i data-lucide="play" style="width:14px; fill:currentColor"></i> Run';
     btn.disabled = false;
     lucide.createIcons();
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PDF.js RENDERING
-   ═══════════════════════════════════════════════════════════ */
-
-async function loadPdfFromBase64(base64) {
-    // Decode base64 → Uint8Array
+function renderPdf(base64) {
+    if (currentPdfBlobUrl) { URL.revokeObjectURL(currentPdfBlobUrl); currentPdfBlobUrl = null; }
     const binary = atob(base64);
-    pdfBytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) pdfBytes[i] = binary.charCodeAt(i);
-
-    document.getElementById('pdfLoadingOverlay').classList.add('show');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    currentPdfBlobUrl = URL.createObjectURL(blob);
     document.getElementById('previewPlaceholder').style.display = 'none';
-
-    pdfDoc = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-    totalPages  = pdfDoc.numPages;
-    currentPage = 1;
-    pageCanvases = [];
-
-    document.getElementById('pdfViewport').innerHTML = '';
-    document.getElementById('pdfViewport').style.display = 'flex';
     document.getElementById('previewToolbar').style.display = 'flex';
+    const frame = document.getElementById('pdfFrame');
+    frame.style.display = 'block';
+    frame.src = currentPdfBlobUrl;
     document.getElementById('downloadPdfBtn').disabled = false;
-
-    // Render all pages into canvases
-    for (let p = 1; p <= totalPages; p++) {
-        await renderPage(p);
-    }
-
-    updatePageNav();
-    document.getElementById('pdfLoadingOverlay').classList.remove('show');
-    document.getElementById('synctexBadge').classList.add('active');
-    toast('PDF ready — click any text to jump to source');
 }
 
-async function renderPage(pageNum) {
-    const page     = await pdfDoc.getPage(pageNum);
-    const viewport = page.getViewport({ scale: pdfScale });
+function reloadPdfFrame() { if (currentPdfBlobUrl) document.getElementById('pdfFrame').src = currentPdfBlobUrl; }
 
-    const wrap   = document.createElement('div');
-    wrap.className = 'pdf-page-wrap';
-    wrap.dataset.page = pageNum;
-    wrap.style.width  = viewport.width  + 'px';
-    wrap.style.height = viewport.height + 'px';
-
-    const canvas  = document.createElement('canvas');
-    canvas.width  = viewport.width;
-    canvas.height = viewport.height;
-    wrap.appendChild(canvas);
-
-    document.getElementById('pdfViewport').appendChild(wrap);
-
-    const ctx = canvas.getContext('2d');
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    // Pre-fetch text content for SyncTeX lookup
-    const textContent = await page.getTextContent();
-
-    pageCanvases[pageNum] = { canvas, wrap, viewport, textContent };
-
-    // Attach click handler for PDF → Editor sync
-    wrap.addEventListener('click', e => handlePdfClick(e, pageNum));
-}
-
-async function rerenderAllPages() {
-    if (!pdfDoc) return;
-    document.getElementById('pdfLoadingOverlay').classList.add('show');
-    document.getElementById('pdfViewport').innerHTML = '';
-    pageCanvases = [];
-    for (let p = 1; p <= totalPages; p++) await renderPage(p);
-    updatePageNav();
-    document.getElementById('pdfLoadingOverlay').classList.remove('show');
-}
-
-function pdfZoom(delta) {
-    pdfScale = Math.max(0.5, Math.min(3.0, pdfScale + delta));
-    document.getElementById('zoomLabel').textContent = Math.round(pdfScale * 100) + '%';
-    rerenderAllPages();
-}
-
-function pdfGoPage(delta) {
-    const target = currentPage + delta;
-    if (target < 1 || target > totalPages) return;
-    currentPage = target;
-    const entry = pageCanvases[currentPage];
-    if (entry) entry.wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    updatePageNav();
-}
-
-function updatePageNav() {
-    document.getElementById('pageLabel').textContent   = `${currentPage} / ${totalPages}`;
-    document.getElementById('prevPageBtn').disabled = currentPage <= 1;
-    document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
-    document.getElementById('zoomLabel').textContent   = Math.round(pdfScale * 100) + '%';
-}
-
-/* ═══════════════════════════════════════════════════════════
-   SYNCTEX  — PDF → Editor  (forward sync)
-   ═══════════════════════════════════════════════════════════ */
-
-async function handlePdfClick(event, pageNum) {
-    const entry = pageCanvases[pageNum];
-    if (!entry) return;
-
-    // Get click position relative to canvas
-    const rect = entry.canvas.getBoundingClientRect();
-    const clickX = (event.clientX - rect.left) * (entry.canvas.width  / rect.width);
-    const clickY = (event.clientY - rect.top)  * (entry.canvas.height / rect.height);
-
-    // Find which text item was clicked using PDF.js text content
-    const items    = entry.textContent.items;
-    const vp       = entry.viewport;
-    let bestItem   = null;
-    let bestDist   = Infinity;
-
-    for (const item of items) {
-        if (!item.str.trim()) continue;
-        // PDF.js transform: [scaleX, shearY, shearX, scaleY, tx, ty]
-        // ty is from PDF bottom-left; canvas is top-left
-        const tx = item.transform[4] * pdfScale;
-        const ty = entry.canvas.height - item.transform[5] * pdfScale;
-        const w  = item.width  * pdfScale;
-        const h  = (item.height || 12) * pdfScale;
-
-        // Expanded hit box (generous)
-        if (clickX >= tx - 4 && clickX <= tx + w + 4 &&
-            clickY >= ty - h - 4 && clickY <= ty + 8) {
-            const dist = Math.abs(clickX - (tx + w / 2)) + Math.abs(clickY - (ty - h / 2));
-            if (dist < bestDist) { bestDist = dist; bestItem = item; }
-        }
-    }
-
-    // Fallback: nearest item by centre distance
-    if (!bestItem) {
-        for (const item of items) {
-            if (!item.str.trim()) continue;
-            const tx = item.transform[4] * pdfScale;
-            const ty = entry.canvas.height - item.transform[5] * pdfScale;
-            const w  = item.width * pdfScale;
-            const h  = (item.height || 12) * pdfScale;
-            const dist = Math.hypot(clickX - (tx + w / 2), clickY - (ty - h / 2));
-            if (dist < bestDist) { bestDist = dist; bestItem = item; }
-        }
-    }
-
-    if (!bestItem || !bestItem.str.trim()) return;
-
-    // Flash highlight on the PDF canvas at click location
-    flashPdfHighlight(entry, bestItem);
-
-    // Search editor source for matching line
-    const found = findLineInEditor(bestItem.str.trim());
-    if (found !== -1) {
-        scrollEditorToLine(found);
-    } else {
-        toast('Could not locate "' + bestItem.str.trim().slice(0, 30) + '" in source');
-    }
-}
-
-/**
- * Searches the LaTeX source for the line best matching pdfText.
- * Strategy:
- *   1. Exact substring match
- *   2. Word-by-word match (any significant word from PDF text appears in line)
- *   3. Return -1 if nothing found
- */
-function findLineInEditor(pdfText) {
-    const source = editor.getValue();
-    const lines  = source.split('\n');
-
-    // Strip common LaTeX commands for cleaner matching
-    const stripLatex = s => s.replace(/\\[a-zA-Z]+(\{[^}]*\})?/g, ' ').replace(/[{}]/g, ' ').replace(/\s+/g,' ').trim();
-
-    const needle = stripLatex(pdfText).toLowerCase();
-    if (!needle) return -1;
-
-    // Pass 1: exact substring in stripped line
-    for (let i = 0; i < lines.length; i++) {
-        const line = stripLatex(lines[i]).toLowerCase();
-        if (line.includes(needle)) return i;
-    }
-
-    // Pass 2: split needle into significant words (>3 chars), match any
-    const words = needle.split(/\s+/).filter(w => w.length > 3);
-    if (!words.length) return -1;
-    let bestLine = -1, bestScore = 0;
-    for (let i = 0; i < lines.length; i++) {
-        const line = stripLatex(lines[i]).toLowerCase();
-        const score = words.filter(w => line.includes(w)).length;
-        if (score > bestScore) { bestScore = score; bestLine = i; }
-    }
-    return bestScore >= Math.ceil(words.length * 0.5) ? bestLine : -1;
-}
-
-function scrollEditorToLine(lineNum) {
-    // Clear previous highlight
-    clearEditorHighlight();
-
-    editor.scrollIntoView({ line: lineNum, ch: 0 }, 120);
-    editor.setCursor({ line: lineNum, ch: 0 });
-
-    // Mark the line
-    const mark = editor.addLineClass(lineNum, 'background', 'cm-synctex-line');
-    // Fade out after 2.5s
-    setTimeout(() => {
-        editor.removeLineClass(lineNum, 'background', 'cm-synctex-line');
-        editor.addLineClass(lineNum, 'background', 'cm-synctex-line-fade');
-        setTimeout(() => editor.removeLineClass(lineNum, 'background', 'cm-synctex-line-fade'), 1200);
-    }, 2500);
-}
-
-let _editorHighlightLine = -1;
-function clearEditorHighlight() {
-    if (_editorHighlightLine >= 0) {
-        editor.removeLineClass(_editorHighlightLine, 'background', 'cm-synctex-line');
-        editor.removeLineClass(_editorHighlightLine, 'background', 'cm-synctex-line-fade');
-        _editorHighlightLine = -1;
-    }
-}
-
-function flashPdfHighlight(entry, item) {
-    // Remove old flashes
-    entry.wrap.querySelectorAll('.pdf-click-flash').forEach(el => el.remove());
-
-    const tx = item.transform[4] * pdfScale;
-    const ty = entry.canvas.height - item.transform[5] * pdfScale;
-    const w  = item.width  * pdfScale;
-    const h  = (item.height || 12) * pdfScale;
-
-    const flash = document.createElement('div');
-    flash.className = 'pdf-click-flash';
-    flash.style.left   = (tx - 2) + 'px';
-    flash.style.top    = (ty - h - 2) + 'px';
-    flash.style.width  = (w + 4) + 'px';
-    flash.style.height = (h + 4) + 'px';
-    entry.wrap.appendChild(flash);
-
-    // Fade out
-    setTimeout(() => { flash.style.opacity = '0'; }, 1200);
-    setTimeout(() => flash.remove(), 2200);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   SYNCTEX  — Editor → PDF  (inverse sync)
-   ═══════════════════════════════════════════════════════════ */
-
-// Clear previous PDF inverse-sync overlays
-let _pdfOverlays = [];
-function clearPdfOverlays() {
-    _pdfOverlays.forEach(el => el.remove());
-    _pdfOverlays = [];
-}
-
-async function editorToPdf() {
-    if (!pdfDoc) return;
-
-    clearPdfOverlays();
-
-    const cursor   = editor.getCursor();
-    const lineText = editor.getLine(cursor.line) || '';
-
-    // Strip LaTeX markup to get searchable words
-    const stripped = lineText
-        .replace(/\\[a-zA-Z]+(\{[^}]*\})?/g, ' ')
-        .replace(/[{}%]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    if (!stripped || stripped.length < 4) return;
-
-    // Pick the longest significant word from the line for targeted search
-    const words = stripped.split(/\s+/).filter(w => w.length > 3 && !/^\d+$/.test(w));
-    if (!words.length) return;
-    const searchWord = words.reduce((a, b) => a.length >= b.length ? a : b, '');
-
-    // Search every page's text layer
-    for (let p = 1; p <= totalPages; p++) {
-        const entry = pageCanvases[p];
-        if (!entry) continue;
-        const items = entry.textContent.items;
-        for (const item of items) {
-            if (item.str.toLowerCase().includes(searchWord.toLowerCase())) {
-                drawPdfInverseHighlight(entry, item);
-            }
-        }
-    }
-}
-
-function drawPdfInverseHighlight(entry, item) {
-    const tx = item.transform[4] * pdfScale;
-    const ty = entry.canvas.height - item.transform[5] * pdfScale;
-    const w  = item.width  * pdfScale;
-    const h  = (item.height || 12) * pdfScale;
-
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position:absolute;
-        left:${tx - 1}px; top:${ty - h - 1}px;
-        width:${w + 2}px; height:${h + 2}px;
-        background:rgba(59,130,246,0.20);
-        border:1px solid rgba(59,130,246,0.5);
-        border-radius:2px; pointer-events:none; z-index:4;
-    `;
-    entry.wrap.appendChild(overlay);
-    _pdfOverlays.push(overlay);
-}
-
-/* ─── PDF clear ───────────────────────────────────────────── */
 function clearPdfPreview() {
-    pdfDoc = null; pdfBytes = null; pageCanvases = []; totalPages = 0;
-    clearPdfOverlays();
-    document.getElementById('pdfViewport').innerHTML = '';
-    document.getElementById('pdfViewport').style.display = 'none';
-    document.getElementById('pdfLoadingOverlay').classList.remove('show');
+    if (currentPdfBlobUrl) { URL.revokeObjectURL(currentPdfBlobUrl); currentPdfBlobUrl = null; }
+    const frame = document.getElementById('pdfFrame');
+    frame.src = 'about:blank'; frame.style.display = 'none';
     document.getElementById('previewToolbar').style.display = 'none';
     document.getElementById('downloadPdfBtn').disabled = true;
-    document.getElementById('synctexBadge').classList.remove('active');
-    const ph = document.getElementById('previewPlaceholder');
-    ph.innerHTML = `<i data-lucide="eye" style="width:48px;height:48px;opacity:0.25;color:#aaa"></i><p>Compile to see the PDF preview</p>`;
-    ph.style.display = 'flex';
-    lucide.createIcons();
+    document.getElementById('previewPlaceholder').style.display = 'flex';
 }
 
-/* ─── Download ────────────────────────────────────────────── */
 function downloadTeX() {
-    const name = (document.getElementById('docTitleInput').value || 'document') + '.tex';
-    triggerDownload(URL.createObjectURL(new Blob([editor.getValue()], { type: 'text/plain' })), name);
+    const blob = new Blob([editor.getValue()], { type: 'text/plain' });
+    triggerDownload(URL.createObjectURL(blob), (document.getElementById('docTitleInput').value || 'doc') + '.tex');
 }
+
 function downloadPDF() {
-    if (!pdfBytes) { toast('Compile first', true); return; }
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    triggerDownload(URL.createObjectURL(blob), (document.getElementById('docTitleInput').value || 'document') + '.pdf');
+    if (!currentPdfBlobUrl) return;
+    triggerDownload(currentPdfBlobUrl, (document.getElementById('docTitleInput').value || 'doc') + '.pdf');
 }
+
 function triggerDownload(url, filename) {
     const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
 }
 
-/* ─── Helpers ─────────────────────────────────────────────── */
 function classifyFile(name) {
     const ext = name.split('.').pop().toLowerCase();
-    if (ext === 'tex') return 'tex'; if (ext === 'bib') return 'bib';
-    if (['png','jpg','jpeg','gif','svg','eps'].includes(ext)) return 'img'; return 'other';
+    if (ext === 'tex') return 'tex';
+    if (ext === 'bib') return 'bib';
+    if (['png','jpg','jpeg','gif','svg','eps'].includes(ext)) return 'img';
+    return 'other';
 }
 function isBinaryPath(name) { return ['png','jpg','jpeg','gif','pdf','eps','zip'].includes(name.split('.').pop().toLowerCase()); }
 function fileToBase64(file) {
-    return new Promise((res,rej) => { const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
+    return new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
 }
 function syncEditorToFile() { if (activeTexName) upsertTexFile(activeTexName, editor.getValue(), true); }
 function upsertTexFile(name, plainText, isMain) {
@@ -1045,44 +909,26 @@ function highlightActiveProject(id) { document.querySelectorAll('.project-item')
 function toggleDropdown() { document.getElementById('importDropdown').classList.toggle('open'); }
 function closeDropdown()  { document.getElementById('importDropdown').classList.remove('open'); }
 
-// Scroll-based page tracker
-document.addEventListener('DOMContentLoaded', () => {
-    const vp = document.getElementById('pdfViewport');
-    if (vp) vp.addEventListener('scroll', () => {
-        for (let p = totalPages; p >= 1; p--) {
-            const entry = pageCanvases[p];
-            if (!entry) continue;
-            if (entry.wrap.offsetTop <= vp.scrollTop + vp.clientHeight / 2) {
-                if (currentPage !== p) { currentPage = p; updatePageNav(); }
-                break;
-            }
-        }
-    });
-});
-
 let toastTimer;
-function toast(msg, isError = false) {
+function toast(msg) {
     const el = document.getElementById('toast');
-    el.textContent = msg; el.style.background = isError ? '#dc2626' : '#1e293b';
-    el.classList.add('show'); clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    el.innerHTML = `<i data-lucide="check-circle" style="width:16px"></i> ${msg}`;
+    el.className = 'show';
+    lucide.createIcons();
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
 let confirmResolve;
 function confirm(title, msg) {
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmMsg').textContent   = msg;
     document.getElementById('confirmModal').classList.add('show');
     return new Promise(res => confirmResolve = res);
 }
-function resolveConfirm(val) {
-    document.getElementById('confirmModal').classList.remove('show');
-    if (confirmResolve) { confirmResolve(val); confirmResolve = null; }
-}
-function showUploadOverlay(title, total) { document.getElementById('uploadTitle').textContent = title; document.getElementById('uploadMsg').textContent = `0 / ${total}`; document.getElementById('progressFill').style.width = '0%'; document.getElementById('uploadOverlay').classList.add('show'); }
-function updateProgress(done, total) { document.getElementById('uploadMsg').textContent = `${done} / ${total} files`; document.getElementById('progressFill').style.width = Math.round(done / total * 100) + '%'; }
+function resolveConfirm(val) { document.getElementById('confirmModal').classList.remove('show'); if (confirmResolve) { confirmResolve(val); confirmResolve = null; } }
+
+function showUploadOverlay(title, total) { document.getElementById('uploadTitle').textContent = title; document.getElementById('uploadMsg').textContent = `0 / ${total} items`; document.getElementById('progressFill').style.width = '0%'; document.getElementById('uploadOverlay').classList.add('show'); }
+function updateProgress(done, total) { document.getElementById('uploadMsg').textContent = `${done} / ${total} items`; document.getElementById('progressFill').style.width = Math.round(done / total * 100) + '%'; }
 function hideUploadOverlay() { document.getElementById('uploadOverlay').classList.remove('show'); }
-function debounce(fn, ms) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; }
 </script>
 </body>
 </html>
