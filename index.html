@@ -14,6 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/stex/stex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
 /* ─── Design System ─────────────────────────────────────────── */
@@ -49,8 +50,11 @@
 }
 
 *, *::before, *::after {
-    box-sizing: border-box; margin: 0; padding: 0;
-    font-family: var(--font-sans); font-size: 13px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-sans);
+    font-size: 13px;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -67,7 +71,12 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-.app-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
+.app-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
 
 /* ─── Top Bar ───────────────────────────────────────────────── */
 .topbar {
@@ -81,16 +90,48 @@ body {
     z-index: 100;
 }
 
-.brand { display: flex; align-items: center; gap: 12px; user-select: none; }
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    user-select: none;
+}
+
 .brand-mark {
-    width: 28px; height: 28px;
+    width: 28px;
+    height: 28px;
     background: var(--text-primary);
     border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.brand-mark svg { width: 16px; height: 16px; color: black; stroke-width: 3; }
-.brand h1 { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: var(--text-primary); }
-.brand h1 span { color: var(--text-muted); font-weight: 400; margin-left: 2px; }
+
+.brand-mark svg {
+    width: 16px;
+    height: 16px;
+    color: black;
+    stroke-width: 3;
+}
+
+.brand h1 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+
+.brand h1 span {
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-left: 2px;
+}
+
+.auth-zone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
 /* ─── Toolbar ───────────────────────────────────────────────── */
 .toolbar {
@@ -102,7 +143,13 @@ body {
     gap: 12px;
 }
 
-.title-input-wrapper { display: flex; align-items: center; gap: 8px; flex: 1; }
+.title-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
 
 .title-input {
     background: transparent;
@@ -114,11 +161,22 @@ body {
     border-radius: var(--radius-sm);
     transition: var(--transition);
     min-width: 200px;
+    width: 100%;
 }
-.title-input:hover { background: var(--bg-panel); }
-.title-input:focus { outline: none; background: var(--bg-panel); box-shadow: 0 0 0 1px var(--border-strong); }
 
-.toolbar-actions { display: flex; align-items: center; gap: 6px; }
+.title-input:hover { background: var(--bg-panel); }
+.title-input:focus {
+    outline: none;
+    background: var(--bg-panel);
+    box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
 
 /* ─── Buttons ───────────────────────────────────────────────── */
 .btn {
@@ -134,16 +192,44 @@ body {
     transition: all var(--transition);
     background: var(--bg-elevated);
     color: var(--text-secondary);
+    white-space: nowrap;
 }
-.btn:hover { background: #2a2a2e; border-color: var(--border-strong); color: var(--text-primary); }
-.btn-primary { background: var(--text-primary); color: var(--bg-app); border: none; font-weight: 600; }
-.btn-primary:hover { background: #ffffff; transform: scale(1.02); }
-.btn-ghost { background: transparent; border: none; }
+
+.btn:hover {
+    background: #2a2a2e;
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    background: var(--text-primary);
+    color: var(--bg-app);
+    border: none;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background: #ffffff;
+    transform: scale(1.02);
+    color: var(--bg-app);
+}
+
+.btn-ghost {
+    background: transparent;
+    border: none;
+}
+
 .btn-ghost:hover { background: var(--bg-panel); }
+.btn-danger { color: #f87171; border-color: rgba(248, 113, 113, 0.2); }
+.btn-danger:hover { background: rgba(248, 113, 113, 0.1); color: #fca5a5; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
 /* ─── Workspace ─────────────────────────────────────────────── */
-.workspace { display: flex; flex: 1; min-height: 0; }
+.workspace {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
 
 /* Project sidebar */
 .sidebar-projects {
@@ -152,15 +238,30 @@ body {
     border-right: 1px solid var(--border-medium);
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
 }
+
 .section-header {
     padding: 16px 16px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
 }
-.sidebar-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-.sidebar-projects-list { flex: 1; overflow-y: auto; padding: 0 8px 16px; }
+
+.sidebar-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sidebar-projects-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 16px;
+}
 
 .project-item {
     padding: 8px 10px;
@@ -174,10 +275,17 @@ body {
     transition: var(--transition);
     position: relative;
 }
+
 .project-item:hover { background: var(--bg-panel); color: var(--text-primary); }
 .project-item.active { background: var(--bg-elevated); color: var(--text-primary); font-weight: 500; }
 
-/* Delete button — plain button, no .btn class to avoid event interference */
+.project-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .project-item-delete {
     margin-left: auto;
     opacity: 0;
@@ -192,8 +300,9 @@ body {
     line-height: 0;
     flex-shrink: 0;
 }
+
 .project-item:hover .project-item-delete { opacity: 1; }
-.project-item-delete:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+.project-item-delete:hover { color: #f87171; background: rgba(248, 113, 113, 0.1); }
 
 /* File panel */
 .file-panel {
@@ -202,9 +311,23 @@ body {
     border-right: 1px solid var(--border-medium);
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
 }
-.file-panel-body { flex: 1; overflow-y: auto; }
-.file-group-label { font-size: 10px; color: var(--text-dim); font-weight: 700; padding: 16px 12px 6px; text-transform: uppercase; }
+
+.file-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 12px;
+}
+
+.file-group-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 700;
+    padding: 16px 12px 6px;
+    text-transform: uppercase;
+}
+
 .file-entry {
     display: flex;
     align-items: center;
@@ -215,8 +338,15 @@ body {
     color: var(--text-secondary);
     transition: var(--transition);
 }
+
 .file-entry:hover { background: var(--bg-panel); color: var(--text-primary); }
 .file-entry.active-file { background: var(--accent-soft); color: var(--accent-hover); }
+.file-entry-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 .file-remove-btn {
     margin-left: auto;
@@ -230,25 +360,55 @@ body {
     border-radius: 3px;
     flex-shrink: 0;
 }
+
 .file-entry:hover .file-remove-btn { opacity: 1; }
-.file-remove-btn:hover { color: #f87171; }
+.file-remove-btn:hover { color: #f87171; background: rgba(248, 113, 113, 0.08); }
 
 /* Editor */
-.editor-area { flex: 1; display: flex; min-width: 0; background: #0f0f11; }
-.editor-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.CodeMirror { flex: 1; height: 100% !important; font-family: var(--font-mono) !important; font-size: 14px !important; line-height: 1.7 !important; padding: 10px 0; }
-.CodeMirror-gutters { background: transparent !important; border: none !important; }
-.CodeMirror-linenumber { color: var(--text-dim) !important; padding: 0 15px !important; }
+.editor-area {
+    flex: 1;
+    display: flex;
+    min-width: 0;
+    background: #0f0f11;
+}
+
+.editor-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.CodeMirror {
+    flex: 1;
+    height: 100% !important;
+    font-family: var(--font-mono) !important;
+    font-size: 14px !important;
+    line-height: 1.7 !important;
+    padding: 10px 0;
+}
+
+.CodeMirror-gutters {
+    background: transparent !important;
+    border: none !important;
+}
+
+.CodeMirror-linenumber {
+    color: var(--text-dim) !important;
+    padding: 0 15px !important;
+}
 
 /* Preview */
 .preview {
     width: 42%;
+    min-width: 360px;
     background: #1c1c1f;
     border-left: 1px solid var(--border-medium);
     display: flex;
     flex-direction: column;
     position: relative;
 }
+
 .preview-toolbar {
     padding: 10px 16px;
     background: var(--bg-sidebar);
@@ -258,18 +418,43 @@ body {
     align-items: center;
     flex-shrink: 0;
 }
-.preview-status { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); font-weight: 600; }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
-#pdfFrame { flex: 1; width: 100%; border: none; background: #27272a; display: none; }
+
+.preview-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+}
+
+#pdfFrame {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: #27272a;
+    display: none;
+}
 
 /* Modals */
 #authModal, #confirmModal, #uploadOverlay {
-    position: fixed; inset: 0;
+    position: fixed;
+    inset: 0;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
-    display: none; align-items: center; justify-content: center;
+    display: none;
+    align-items: center;
+    justify-content: center;
     z-index: 1000;
 }
+
 #authModal.show, #confirmModal.show, #uploadOverlay.show { display: flex; }
 
 .modal-content, .confirm-box, .upload-box {
@@ -281,49 +466,108 @@ body {
     box-shadow: var(--shadow-card);
     animation: zoomIn 0.2s ease-out;
 }
-@keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-.modal-content h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-.modal-content p { color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+@keyframes zoomIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.modal-content h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.modal-content p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
 .modal-content input {
-    width: 100%; padding: 10px 14px;
-    background: var(--bg-input); border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm); color: white; margin-bottom: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: white;
+    margin-bottom: 10px;
     transition: var(--transition);
 }
-.modal-content input:focus { outline: none; border-color: var(--text-muted); }
+
+.modal-content input:focus {
+    outline: none;
+    border-color: var(--text-muted);
+}
 
 /* Toast */
 #toast {
-    position: fixed; bottom: 24px; left: 50%;
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
     transform: translateX(-50%) translateY(100px);
-    background: var(--text-primary); color: var(--bg-app);
-    padding: 10px 20px; border-radius: 30px; font-weight: 600;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    background: var(--text-primary);
+    color: var(--bg-app);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 2000; display: flex; align-items: center; gap: 8px;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
+
 #toast.show { transform: translateX(-50%) translateY(0); }
 #toast.error-toast { background: #f87171; color: #fff; }
 
 /* Dropdown */
 .dropdown-wrapper { position: relative; }
+
 .dropdown-menu {
-    position: absolute; top: calc(100% + 8px); right: 0;
-    background: var(--bg-panel); border: 1px solid var(--border-strong);
-    border-radius: var(--radius-md); min-width: 180px;
-    display: none; z-index: 200; overflow: hidden;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    min-width: 180px;
+    display: none;
+    z-index: 200;
+    overflow: hidden;
     box-shadow: var(--shadow-card);
 }
+
 .dropdown-menu.open { display: block; }
+
 .dropdown-item {
-    padding: 10px 14px; display: flex; align-items: center; gap: 10px;
-    cursor: pointer; color: var(--text-secondary);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    color: var(--text-secondary);
 }
-.dropdown-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+.dropdown-item:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
 
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+@media (max-width: 1100px) {
+    .preview { width: 38%; min-width: 320px; }
+    .sidebar-projects { width: 220px; }
+    .file-panel { width: 180px; }
+}
+
+@media (max-width: 900px) {
+    .preview { display: none; }
+    .toolbar-actions .btn span { display: none; }
+}
 </style>
 </head>
 <body>
@@ -344,27 +588,30 @@ body {
         </div>
         <div class="toolbar-actions">
             <button class="btn btn-ghost" id="saveCloudBtn" onclick="saveToCloud()" disabled>
-                <i data-lucide="cloud-upload" style="width:16px"></i> Save
+                <i data-lucide="cloud-upload" style="width:16px"></i>
+                <span>Save</span>
             </button>
             <div style="width:1px; height:20px; background:var(--border-medium); margin:0 4px;"></div>
             <button class="btn" onclick="downloadTeX()">
-                <i data-lucide="code-2" style="width:16px"></i> .tex
+                <i data-lucide="code-2" style="width:16px"></i>
+                <span>.tex</span>
             </button>
             <button class="btn" id="downloadPdfBtn" onclick="downloadPDF()" disabled>
-                <i data-lucide="file-type-2" style="width:16px"></i> PDF
+                <i data-lucide="file-type-2" style="width:16px"></i>
+                <span>PDF</span>
             </button>
             <button class="btn btn-primary" id="compileBtn" onclick="compile()">
-                <i data-lucide="play" style="width:14px; fill:currentColor"></i> Run
+                <i data-lucide="play" style="width:14px; fill:currentColor"></i>
+                <span>Run</span>
             </button>
         </div>
     </div>
 
     <div class="workspace">
-        <!-- Projects -->
         <div class="sidebar-projects">
             <div class="section-header">
                 <span class="sidebar-label">Projects</span>
-                <button class="btn btn-ghost" style="padding:4px" onclick="newBlankProject()">
+                <button class="btn btn-ghost" style="padding:4px" onclick="newBlankProject()" title="New project">
                     <i data-lucide="plus" style="width:14px"></i>
                 </button>
             </div>
@@ -374,28 +621,31 @@ body {
             <div style="padding:16px; border-top:1px solid var(--border-medium)">
                 <div class="dropdown-wrapper">
                     <button class="btn" style="width:100%" onclick="toggleDropdown()">
-                        <i data-lucide="import" style="width:14px"></i> Import Project
+                        <i data-lucide="import" style="width:14px"></i>
+                        <span>Import Project</span>
                     </button>
                     <div class="dropdown-menu" id="importDropdown">
                         <div class="dropdown-item" onclick="triggerImport('tex')">
-                            <i data-lucide="file-text" style="width:14px"></i> .tex File
+                            <i data-lucide="file-text" style="width:14px"></i>
+                            .tex File
                         </div>
                         <div class="dropdown-item" onclick="triggerImport('folder')">
-                            <i data-lucide="folder-open" style="width:14px"></i> Folder
+                            <i data-lucide="folder-open" style="width:14px"></i>
+                            Folder
                         </div>
                         <div class="dropdown-item" onclick="triggerImport('zip')">
-                            <i data-lucide="file-archive" style="width:14px"></i> .zip Archive
+                            <i data-lucide="file-archive" style="width:14px"></i>
+                            .zip Archive
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- File panel -->
         <div class="file-panel">
             <div class="section-header">
                 <span class="sidebar-label">Files</span>
-                <button class="btn btn-ghost" style="padding:4px" onclick="triggerAddFiles()">
+                <button class="btn btn-ghost" style="padding:4px" onclick="triggerAddFiles()" title="Add files">
                     <i data-lucide="file-plus" style="width:14px"></i>
                 </button>
             </div>
@@ -404,14 +654,12 @@ body {
             </div>
         </div>
 
-        <!-- Editor -->
         <div class="editor-area">
             <div class="editor-column">
                 <textarea id="editor"></textarea>
             </div>
         </div>
 
-        <!-- Preview -->
         <div class="preview" id="previewPane">
             <div class="preview-toolbar" id="previewToolbar" style="display:none">
                 <div class="preview-status">
@@ -419,10 +667,10 @@ body {
                     <span id="previewPageInfo">Live Preview</span>
                 </div>
                 <div style="display:flex;gap:4px">
-                    <button class="btn btn-ghost" style="padding:6px" onclick="reloadPdfFrame()">
+                    <button class="btn btn-ghost" style="padding:6px" onclick="reloadPdfFrame()" title="Reload preview">
                         <i data-lucide="refresh-cw" style="width:14px"></i>
                     </button>
-                    <button class="btn btn-ghost" style="padding:6px" onclick="downloadPDF()">
+                    <button class="btn btn-ghost" style="padding:6px" onclick="downloadPDF()" title="Download PDF">
                         <i data-lucide="external-link" style="width:14px"></i>
                     </button>
                 </div>
@@ -446,11 +694,10 @@ body {
     </div>
 </div>
 
-<!-- Auth modal -->
 <div id="authModal">
     <div class="modal-content">
         <h2>Welcome to Studio</h2>
-        <p>Sign in to sync your projects and access professional LaTeX tools.</p>
+        <p>Sign in to sync your projects and access your saved LaTeX files.</p>
         <div style="display:flex; flex-direction:column; gap:8px">
             <input type="email" id="authEmail" placeholder="Email address" autocomplete="email">
             <input type="password" id="authPass" placeholder="Password" autocomplete="current-password">
@@ -464,19 +711,17 @@ body {
     </div>
 </div>
 
-<!-- Confirm modal -->
 <div id="confirmModal">
     <div class="confirm-box">
         <h3 id="confirmTitle" style="font-size:16px; font-weight:700; margin-bottom:10px;">Delete Project?</h3>
         <p id="confirmMsg" style="color:var(--text-secondary); line-height:1.5; margin-bottom:20px;">This action cannot be undone.</p>
         <div style="display:flex; gap:10px; justify-content:flex-end">
             <button class="btn btn-ghost" onclick="resolveConfirm(false)">Cancel</button>
-            <button class="btn" style="color:#f87171; border-color:rgba(248,113,113,0.2)" onclick="resolveConfirm(true)">Confirm Delete</button>
+            <button class="btn btn-danger" onclick="resolveConfirm(true)">Confirm Delete</button>
         </div>
     </div>
 </div>
 
-<!-- Upload overlay -->
 <div id="uploadOverlay">
     <div class="upload-box">
         <h3 id="uploadTitle" style="font-size:16px; font-weight:700; margin-bottom:8px;">Uploading Assets</h3>
@@ -489,173 +734,334 @@ body {
 
 <div id="toast"></div>
 
-<!-- Hidden file inputs — each triggered directly to preserve user-gesture -->
-<input type="file" id="importTexInput"    accept=".tex"   style="display:none" onchange="handleImportTex(this)">
+<input type="file" id="importTexInput" accept=".tex" style="display:none" onchange="handleImportTex(this)">
 <input type="file" id="importFolderInput" style="display:none" onchange="handleImportFolder(this)">
-<input type="file" id="importZipInput"    accept=".zip"   style="display:none" onchange="handleImportZip(this)">
-<input type="file" id="addFilesInput"     multiple accept=".bib,.png,.jpg,.jpeg,.pdf,.sty,.cls,.tex" style="display:none" onchange="handleAddFiles(this)">
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<input type="file" id="importZipInput" accept=".zip" style="display:none" onchange="handleImportZip(this)">
+<input type="file" id="addFilesInput" multiple accept=".bib,.bst,.bbx,.cbx,.png,.jpg,.jpeg,.pdf,.sty,.cls,.tex,.eps,.svg,.csv,.txt,.dat,.json" style="display:none" onchange="handleAddFiles(this)">
 
 <script>
-lucide.createIcons();
-
 const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
 const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
+
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
-let editor, currentUser, currentDocId;
-let projectFiles  = [];
+let editor;
+let currentUser = null;
+let currentDocId = null;
+let projectFiles = [];
 let activeTexName = null;
 let currentPdfBlobUrl = null;
+let toastTimer = null;
+let confirmResolve = null;
 
-/* ─── Init ────────────────────────────────────────────────── */
-window.onload = () => {
+window.addEventListener('load', initApp);
+
+document.addEventListener('click', function (event) {
+    if (!event.target.closest('.dropdown-wrapper')) {
+        closeDropdown();
+    }
+});
+
+async function initApp() {
     editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
         mode: 'stex',
         theme: 'material-ocean',
         lineNumbers: true,
         lineWrapping: true,
-        extraKeys: { 'Ctrl-S': () => saveToCloud(), 'Ctrl-Enter': () => compile() }
+        extraKeys: {
+            'Ctrl-S': function () { saveToCloud(); },
+            'Cmd-S': function () { saveToCloud(); },
+            'Ctrl-Enter': function () { compile(); },
+            'Cmd-Enter': function () { compile(); }
+        }
     });
-    loadBlankTemplate('New Research Paper', 'Author Name');
-    checkSession();
-    lucide.createIcons();
-    document.addEventListener('click', e => { if (!e.target.closest('.dropdown-wrapper')) closeDropdown(); });
 
-    // Set webkitdirectory on folder input programmatically (avoids HTML-attribute browser quirks)
     const folderInput = document.getElementById('importFolderInput');
     folderInput.setAttribute('webkitdirectory', '');
+    folderInput.setAttribute('directory', '');
     folderInput.setAttribute('multiple', '');
-};
 
-/* ─── Auth ────────────────────────────────────────────────── */
+    loadBlankTemplate('New Research Paper', 'Author Name');
+    await checkSession();
+    refreshIcons();
+}
+
+function refreshIcons() {
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+/* ─── Authentication ───────────────────────────────────────── */
 async function checkSession() {
-    const { data: { session } } = await sb.auth.getSession();
-    syncAuthUI(session?.user ?? null);
-    sb.auth.onAuthStateChange((_, s) => syncAuthUI(s?.user ?? null));
+    const result = await sb.auth.getSession();
+    const session = result.data && result.data.session ? result.data.session : null;
+    syncAuthUI(session && session.user ? session.user : null);
+
+    sb.auth.onAuthStateChange(function (_event, sessionValue) {
+        syncAuthUI(sessionValue && sessionValue.user ? sessionValue.user : null);
+    });
 }
 
 function syncAuthUI(user) {
     currentUser = user;
-    const zone    = document.getElementById('authZone');
+
+    const zone = document.getElementById('authZone');
     const saveBtn = document.getElementById('saveCloudBtn');
+
     if (user) {
         zone.innerHTML = `
-            <span style="font-size:12px; color:var(--text-muted); margin-right:12px">${user.email}</span>
-            <button class="btn btn-ghost" style="padding:4px 8px; font-size:11px" onclick="signOut()">Sign Out</button>`;
+            <span style="font-size:12px; color:var(--text-muted); margin-right:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle;">${escHtml(user.email)}</span>
+            <button class="btn btn-ghost" style="padding:4px 8px; font-size:11px" onclick="signOut()">Sign Out</button>
+        `;
         saveBtn.disabled = false;
         fetchProjects();
     } else {
         zone.innerHTML = '<button class="btn btn-primary" style="padding:4px 12px; font-size:12px" onclick="toggleModal(true)">Sign In</button>';
         saveBtn.disabled = true;
-        document.getElementById('cloudDocList').innerHTML =
-            '<div style="font-size:11px; color:var(--text-dim); padding:20px; text-align:center;">Cloud sync disabled.</div>';
+        currentDocId = null;
+        document.getElementById('cloudDocList').innerHTML = '<div style="font-size:11px; color:var(--text-dim); padding:20px; text-align:center;">Cloud sync disabled.</div>';
     }
-    lucide.createIcons();
+
+    refreshIcons();
 }
 
-async function signOut() { await sb.auth.signOut(); }
+async function signOut() {
+    await sb.auth.signOut();
+    currentDocId = null;
+    highlightActiveProject(null);
+    toast('Signed out');
+}
 
 async function processAuth(mode) {
-    const email  = document.getElementById('authEmail').value.trim();
-    const pass   = document.getElementById('authPass').value;
+    const email = document.getElementById('authEmail').value.trim();
+    const pass = document.getElementById('authPass').value;
     const errDiv = document.getElementById('authError');
+
     errDiv.textContent = '';
-    try {
-        const res = mode === 'login'
-            ? await sb.auth.signInWithPassword({ email, password: pass })
-            : await sb.auth.signUp({ email, password: pass });
-        if (res.error) throw res.error;
-        toggleModal(false);
-    } catch (err) { errDiv.textContent = err.message; }
-}
 
-function toggleModal(show) { document.getElementById('authModal').className = show ? 'show' : ''; }
-
-/* ─── Projects ────────────────────────────────────────────── */
-async function fetchProjects() {
-    const { data, error } = await sb.from('documents').select('id, title').order('created_at', { ascending: false });
-    const list = document.getElementById('cloudDocList');
-    if (error) {
-        list.innerHTML = `<div style="color:#f87171; font-size:11px; padding:8px">${error.message}</div>`;
+    if (!email || !pass) {
+        errDiv.textContent = 'Email and password are required.';
         return;
     }
+
+    try {
+        const result = mode === 'login'
+            ? await sb.auth.signInWithPassword({ email: email, password: pass })
+            : await sb.auth.signUp({ email: email, password: pass });
+
+        if (result.error) {
+            throw result.error;
+        }
+
+        toggleModal(false);
+        toast(mode === 'login' ? 'Signed in' : 'Account created');
+    } catch (err) {
+        errDiv.textContent = err.message || 'Authentication failed.';
+    }
+}
+
+function toggleModal(show) {
+    document.getElementById('authModal').className = show ? 'show' : '';
+}
+
+/* ─── Cloud Projects ───────────────────────────────────────── */
+async function fetchProjects() {
+    if (!currentUser) return;
+
+    const list = document.getElementById('cloudDocList');
+    list.innerHTML = '<div style="font-size:11px; color:var(--text-dim); padding:20px; text-align:center;">Loading projects...</div>';
+
+    const result = await sb
+        .from('documents')
+        .select('id, title, created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+    if (result.error) {
+        list.innerHTML = `<div style="color:#f87171; font-size:11px; padding:12px; line-height:1.4;">${escHtml(result.error.message)}</div>`;
+        return;
+    }
+
+    const data = result.data || [];
+
     if (!data.length) {
         list.innerHTML = '<div style="font-size:11px; color:var(--text-dim); padding:16px; text-align:center;">No cloud projects.</div>';
         return;
     }
-    // Build project list — store id and title as data attributes to avoid inline escaping
-    list.innerHTML = data.map(d => `
-        <div class="project-item" data-id="${d.id}" data-title="${escAttr(d.title)}">
-            <i data-lucide="folder" style="width:14px; color:var(--text-muted); flex-shrink:0"></i>
-            <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${escHtml(d.title)}</span>
-            <button class="project-item-delete" title="Delete project">
-                <i data-lucide="x" style="width:12px"></i>
-            </button>
-        </div>`).join('');
 
-    // Attach click handlers in JS — avoids all inline-onclick escaping bugs
-    list.querySelectorAll('.project-item').forEach(item => {
-        // Click on item body → load project
-        item.addEventListener('click', e => {
-            if (e.target.closest('.project-item-delete')) return; // let delete handle it
+    list.innerHTML = data.map(function (doc) {
+        return `
+            <div class="project-item" data-id="${escAttr(doc.id)}" data-title="${escAttr(doc.title || 'Untitled Project')}">
+                <i data-lucide="folder" style="width:14px; color:var(--text-muted); flex-shrink:0"></i>
+                <span class="project-title" title="${escAttr(doc.title || 'Untitled Project')}">${escHtml(doc.title || 'Untitled Project')}</span>
+                <button class="project-item-delete" title="Delete project" aria-label="Delete project">
+                    <i data-lucide="x" style="width:12px"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    list.querySelectorAll('.project-item').forEach(function (item) {
+        item.addEventListener('click', function (event) {
+            if (event.target.closest('.project-item-delete')) return;
             loadProject(item.dataset.id);
         });
-        // Click on delete button
-        item.querySelector('.project-item-delete').addEventListener('click', e => {
-            e.stopPropagation();
+
+        const deleteButton = item.querySelector('.project-item-delete');
+        deleteButton.addEventListener('click', function (event) {
+            event.stopPropagation();
             deleteProject(item.dataset.id, item.dataset.title);
         });
     });
 
-    lucide.createIcons();
+    highlightActiveProject(currentDocId);
+    refreshIcons();
 }
 
 async function loadProject(id) {
-    const { data, error } = await sb.from('documents').select('*').eq('id', id).single();
-    if (error || !data) { toast('Error loading project', true); return; }
+    if (!currentUser) return;
+
+    const result = await sb
+        .from('documents')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', currentUser.id)
+        .single();
+
+    if (result.error || !result.data) {
+        toast('Error loading project', true);
+        return;
+    }
+
+    const data = result.data;
     currentDocId = data.id;
-    projectFiles = data.assets || [];
-    document.getElementById('docTitleInput').value = data.title;
-    const mainTex = projectFiles.find(f => f.type === 'tex' && f.main) || projectFiles.find(f => f.type === 'tex');
-    if (mainTex) { activeTexName = mainTex.name; editor.setValue(atob(mainTex.content)); }
-    else         { activeTexName = null; editor.setValue(data.content || ''); }
-    clearPdfPreview(); renderFilePanel(); highlightActiveProject(id);
+    projectFiles = Array.isArray(data.assets) ? data.assets : [];
+
+    document.getElementById('docTitleInput').value = data.title || 'Untitled Project';
+
+    const mainTex = projectFiles.find(function (file) {
+        return file.type === 'tex' && file.main;
+    }) || projectFiles.find(function (file) {
+        return file.type === 'tex';
+    });
+
+    if (mainTex) {
+        activeTexName = mainTex.name;
+        editor.setValue(decodeBase64Text(mainTex.content));
+    } else {
+        activeTexName = null;
+        editor.setValue(data.content || '');
+    }
+
+    clearPdfPreview();
+    renderFilePanel();
+    highlightActiveProject(id);
+    toast('Project loaded');
 }
 
 async function saveToCloud() {
-    if (!currentUser) return;
-    syncEditorToFile();
-    const title   = document.getElementById('docTitleInput').value.trim() || 'Untitled Project';
-    const saveBtn = document.getElementById('saveCloudBtn');
-    saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px"></i> Syncing...';
-    lucide.createIcons();
-    const payload = { user_id: currentUser.id, title, content: editor.getValue(), assets: projectFiles };
-    let res;
-    if (currentDocId) {
-        res = await sb.from('documents').update(payload).eq('id', currentDocId);
-    } else {
-        res = await sb.from('documents').insert([payload]).select();
-        if (res.data?.[0]) currentDocId = res.data[0].id;
+    if (!currentUser) {
+        toast('Sign in before saving to cloud.', true);
+        return;
     }
-    if (res.error) { toast('Cloud sync failed', true); }
-    else           { toast('Changes synced ✓'); fetchProjects(); highlightActiveProject(currentDocId); }
-    saveBtn.innerHTML = '<i data-lucide="cloud-upload" style="width:14px"></i> Save';
-    lucide.createIcons();
+
+    syncEditorToFile();
+
+    const title = document.getElementById('docTitleInput').value.trim() || 'Untitled Project';
+    const saveBtn = document.getElementById('saveCloudBtn');
+    const originalHtml = saveBtn.innerHTML;
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px"></i> <span>Syncing...</span>';
+    refreshIcons();
+
+    const payload = {
+        user_id: currentUser.id,
+        title: title,
+        content: editor.getValue(),
+        assets: projectFiles
+    };
+
+    let result;
+
+    if (currentDocId) {
+        result = await sb
+            .from('documents')
+            .update(payload)
+            .eq('id', currentDocId)
+            .eq('user_id', currentUser.id)
+            .select();
+    } else {
+        result = await sb
+            .from('documents')
+            .insert([payload])
+            .select();
+
+        if (result.data && result.data[0]) {
+            currentDocId = result.data[0].id;
+        }
+    }
+
+    if (result.error) {
+        toast('Cloud sync failed: ' + result.error.message, true);
+    } else {
+        toast('Changes synced');
+        await fetchProjects();
+        highlightActiveProject(currentDocId);
+    }
+
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = originalHtml;
+    refreshIcons();
+}
+
+async function deleteProject(id, title) {
+    if (!currentUser) {
+        toast('Sign in before deleting projects.', true);
+        return;
+    }
+
+    const confirmed = await showConfirm(
+        'Delete Project?',
+        `This will permanently remove "${title}" from your account. This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    const result = await sb
+        .from('documents')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', currentUser.id);
+
+    if (result.error) {
+        toast('Failed to delete: ' + result.error.message, true);
+        return;
+    }
+
+    if (currentDocId === id) {
+        newBlankProject();
+    }
+
+    await fetchProjects();
+    toast('Project deleted');
 }
 
 function newBlankProject() {
-    currentDocId = null; activeTexName = 'main.tex'; projectFiles = [];
+    currentDocId = null;
+    activeTexName = 'main.tex';
+    projectFiles = [];
     document.getElementById('docTitleInput').value = 'Untitled Project';
     loadBlankTemplate('New Document', 'Author');
-    clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
+    clearPdfPreview();
+    renderFilePanel();
+    highlightActiveProject(null);
 }
 
 function loadBlankTemplate(title, author) {
-    const src =
-`\\documentclass[12pt]{article}
+    const src = `\\documentclass[12pt]{article}
 \\usepackage[utf8]{inputenc}
 
 \\title{${title}}
@@ -669,409 +1075,720 @@ function loadBlankTemplate(title, author) {
 Start your masterpiece here...
 
 \\end{document}`;
+
     editor.setValue(src);
     upsertTexFile('main.tex', src, true);
+    renderFilePanel();
 }
 
-/* ─── Delete project ──────────────────────────────────────── */
-async function deleteProject(id, title) {
-    const confirmed = await showConfirm(
-        'Delete Project?',
-        `This will permanently remove "${title}" from your account. This cannot be undone.`
-    );
-    if (!confirmed) return;
-    const { error } = await sb.from('documents').delete().eq('id', id);
-    if (error) { toast('Failed to delete: ' + error.message, true); return; }
-    if (currentDocId === id) newBlankProject();
-    fetchProjects();
-    toast('Project deleted');
+/* ─── Import and Upload ────────────────────────────────────── */
+function toggleDropdown() {
+    document.getElementById('importDropdown').classList.toggle('open');
 }
 
-/* ─── Import ──────────────────────────────────────────────── */
-// Each branch clicks the input directly — preserves user gesture for folder picker
+function closeDropdown() {
+    document.getElementById('importDropdown').classList.remove('open');
+}
+
 function triggerImport(type) {
     closeDropdown();
+
     if (type === 'tex') {
-        document.getElementById('importTexInput').click();
-    } else if (type === 'folder') {
-        document.getElementById('importFolderInput').click();
-    } else if (type === 'zip') {
-        document.getElementById('importZipInput').click();
+        const input = document.getElementById('importTexInput');
+        input.value = '';
+        input.click();
+        return;
     }
+
+    if (type === 'folder') {
+        const input = document.getElementById('importFolderInput');
+        input.value = '';
+        input.click();
+        return;
+    }
+
+    if (type === 'zip') {
+        const input = document.getElementById('importZipInput');
+        input.value = '';
+        input.click();
+    }
+}
+
+function triggerAddFiles() {
+    const input = document.getElementById('addFilesInput');
+    input.value = '';
+    input.click();
 }
 
 function handleImportTex(input) {
-    const file = input.files[0]; if (!file) return;
+    const file = input.files && input.files[0] ? input.files[0] : null;
+    if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = e => {
-        currentDocId = null; activeTexName = file.name; projectFiles = [];
+
+    reader.onload = function (event) {
+        const text = event.target.result || '';
+        currentDocId = null;
+        activeTexName = file.name;
+        projectFiles = [];
+
         document.getElementById('docTitleInput').value = file.name.replace(/\.tex$/i, '');
-        editor.setValue(e.target.result);
-        upsertTexFile(file.name, e.target.result, true);
-        clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
+        editor.setValue(text);
+        upsertTexFile(file.name, text, true);
+
+        clearPdfPreview();
+        renderFilePanel();
+        highlightActiveProject(null);
         toast(`Project ready: ${file.name}`);
     };
+
+    reader.onerror = function () {
+        toast('Could not read .tex file.', true);
+    };
+
     reader.readAsText(file);
-    input.value = '';
 }
 
 async function handleImportFolder(input) {
-    const files = Array.from(input.files);
+    const files = Array.from(input.files || []);
     if (!files.length) return;
+
     showUploadOverlay('Importing Folder', files.length);
-    currentDocId = null; projectFiles = [];
-    // webkitRelativePath is "folderName/file.ext" — grab the root folder name
-    const folderName = files[0].webkitRelativePath
-        ? files[0].webkitRelativePath.split('/')[0]
-        : 'Imported Folder';
-    document.getElementById('docTitleInput').value = folderName;
-    let mainTex = null, done = 0;
-    for (const file of files) {
-        const base64 = await fileToBase64(file);
-        const type   = classifyFile(file.name);
-        const isMain = !mainTex && type === 'tex';
-        if (isMain) mainTex = file.name;
-        // Store the relative path as the name so multi-level folders work
-        const name = file.webkitRelativePath || file.name;
-        projectFiles.push({ name, content: base64, type, main: isMain });
-        updateProgress(++done, files.length);
+
+    try {
+        currentDocId = null;
+        projectFiles = [];
+        activeTexName = null;
+
+        const folderName = files[0].webkitRelativePath
+            ? files[0].webkitRelativePath.split('/')[0]
+            : 'Imported Folder';
+
+        document.getElementById('docTitleInput').value = folderName;
+
+        let mainTexEntry = null;
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const name = file.webkitRelativePath || file.name;
+            const type = classifyFile(name);
+            const base64 = await fileToBase64(file);
+            const isMain = shouldMarkAsMainTex(name, type, mainTexEntry);
+
+            const entry = {
+                name: name,
+                content: base64,
+                type: type,
+                main: isMain
+            };
+
+            if (isMain) {
+                mainTexEntry = entry;
+            }
+
+            projectFiles.push(entry);
+            updateProgress(i + 1, files.length);
+        }
+
+        if (!mainTexEntry) {
+            mainTexEntry = projectFiles.find(function (file) { return file.type === 'tex'; }) || null;
+            if (mainTexEntry) mainTexEntry.main = true;
+        }
+
+        if (mainTexEntry) {
+            activeTexName = mainTexEntry.name;
+            editor.setValue(decodeBase64Text(mainTexEntry.content));
+        } else {
+            editor.setValue('');
+        }
+
+        clearPdfPreview();
+        renderFilePanel();
+        highlightActiveProject(null);
+        toast(`Folder imported: ${files.length} file(s)`);
+    } catch (err) {
+        toast('Folder import failed: ' + err.message, true);
+    } finally {
+        hideUploadOverlay();
     }
-    if (mainTex) {
-        activeTexName = mainTex;
-        const entry = projectFiles.find(f => f.name === mainTex || f.name.endsWith('/' + mainTex));
-        if (entry) editor.setValue(atob(entry.content));
-    }
-    hideUploadOverlay(); clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
-    toast(`Folder imported: ${files.length} file(s)`);
-    input.value = '';
 }
 
 async function handleImportZip(input) {
-    const file = input.files[0]; if (!file) return;
-    showUploadOverlay('Extracting Project', 100);
+    const file = input.files && input.files[0] ? input.files[0] : null;
+    if (!file) return;
+
+    showUploadOverlay('Extracting Project', 1);
+
     try {
-        const zip     = await JSZip.loadAsync(file);
-        const entries = Object.values(zip.files).filter(f => !f.dir);
-        currentDocId  = null; projectFiles = [];
+        const zip = await JSZip.loadAsync(file);
+        const entries = Object.values(zip.files).filter(function (entry) {
+            return !entry.dir && !isMacSystemFile(entry.name);
+        });
+
+        currentDocId = null;
+        projectFiles = [];
+        activeTexName = null;
+
         document.getElementById('docTitleInput').value = file.name.replace(/\.zip$/i, '');
-        let mainTex = null, done = 0;
-        for (const entry of entries) {
-            const isBin = isBinaryPath(entry.name);
-            const data  = isBin
-                ? await entry.async('base64')
-                : btoa(unescape(encodeURIComponent(await entry.async('string'))));
-            const type   = classifyFile(entry.name);
-            const isMain = !mainTex && type === 'tex';
-            if (isMain) mainTex = entry.name;
-            projectFiles.push({ name: entry.name, content: data, type, main: isMain });
-            updateProgress(++done, entries.length);
+
+        let mainTexEntry = null;
+
+        for (let i = 0; i < entries.length; i++) {
+            const zipEntry = entries[i];
+            const name = normalizeZipPath(zipEntry.name);
+            const type = classifyFile(name);
+            const content = await zipEntry.async(isBinaryPath(name) ? 'base64' : 'string');
+            const base64 = isBinaryPath(name) ? content : encodeBase64Text(content);
+            const isMain = shouldMarkAsMainTex(name, type, mainTexEntry);
+
+            const entry = {
+                name: name,
+                content: base64,
+                type: type,
+                main: isMain
+            };
+
+            if (isMain) {
+                mainTexEntry = entry;
+            }
+
+            projectFiles.push(entry);
+            updateProgress(i + 1, entries.length);
         }
-        if (mainTex) {
-            activeTexName = mainTex;
-            editor.setValue(atob(projectFiles.find(f => f.name === mainTex).content));
+
+        if (!mainTexEntry) {
+            mainTexEntry = projectFiles.find(function (entry) { return entry.type === 'tex'; }) || null;
+            if (mainTexEntry) mainTexEntry.main = true;
         }
-        hideUploadOverlay(); clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
+
+        if (mainTexEntry) {
+            activeTexName = mainTexEntry.name;
+            editor.setValue(decodeBase64Text(mainTexEntry.content));
+        } else {
+            editor.setValue('');
+        }
+
+        clearPdfPreview();
+        renderFilePanel();
+        highlightActiveProject(null);
         toast(`Archive extracted: ${entries.length} file(s)`);
     } catch (err) {
-        hideUploadOverlay();
         toast('Error extracting archive: ' + err.message, true);
+    } finally {
+        hideUploadOverlay();
     }
-    input.value = '';
 }
-
-function triggerAddFiles() { document.getElementById('addFilesInput').click(); }
 
 async function handleAddFiles(input) {
-    for (const file of Array.from(input.files)) {
-        const base64 = await fileToBase64(file);
-        const type   = classifyFile(file.name);
-        const idx    = projectFiles.findIndex(f => f.name === file.name);
-        const entry  = { name: file.name, content: base64, type, main: false };
-        if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
-        if (type === 'tex') openTexInEditor(file.name);
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+
+    showUploadOverlay('Adding Files', files.length);
+
+    try {
+        syncEditorToFile();
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const base64 = await fileToBase64(file);
+            const type = classifyFile(file.name);
+            const existingIndex = projectFiles.findIndex(function (item) {
+                return item.name === file.name;
+            });
+
+            const entry = {
+                name: file.name,
+                content: base64,
+                type: type,
+                main: false
+            };
+
+            if (existingIndex >= 0) {
+                const wasMain = projectFiles[existingIndex].main;
+                entry.main = wasMain;
+                projectFiles[existingIndex] = entry;
+            } else {
+                projectFiles.push(entry);
+            }
+
+            if (type === 'tex' && !activeTexName) {
+                activeTexName = file.name;
+                entry.main = true;
+                editor.setValue(decodeBase64Text(entry.content));
+            }
+
+            updateProgress(i + 1, files.length);
+        }
+
+        renderFilePanel();
+        toast(`${files.length} file(s) added`);
+    } catch (err) {
+        toast('File upload failed: ' + err.message, true);
+    } finally {
+        hideUploadOverlay();
     }
-    renderFilePanel();
-    toast(`${input.files.length} file(s) added`);
-    input.value = '';
 }
 
-/* ─── File panel ──────────────────────────────────────────── */
+/* ─── File Panel ───────────────────────────────────────────── */
 function renderFilePanel() {
-    const body  = document.getElementById('filePanelBody');
-    const tex   = projectFiles.filter(f => f.type === 'tex');
-    const bib   = projectFiles.filter(f => f.type === 'bib');
-    const img   = projectFiles.filter(f => f.type === 'img');
-    const other = projectFiles.filter(f => f.type === 'other');
+    const body = document.getElementById('filePanelBody');
+    const tex = projectFiles.filter(function (file) { return file.type === 'tex'; });
+    const bib = projectFiles.filter(function (file) { return file.type === 'bib'; });
+    const img = projectFiles.filter(function (file) { return file.type === 'img'; });
+    const other = projectFiles.filter(function (file) { return file.type === 'other'; });
+
     if (!projectFiles.length) {
         body.innerHTML = '<div style="font-size:10px; color:var(--text-dim); padding:12px;">No assets in project.</div>';
         return;
     }
+
     let html = '';
-    if (tex.length)   html += fileGroup('Source',     tex,   'file-text');
-    if (bib.length)   html += fileGroup('References', bib,   'book-open');
-    if (img.length)   html += fileGroup('Assets',     img,   'image');
-    if (other.length) html += fileGroup('Build',      other, 'settings');
+    if (tex.length) html += fileGroup('Source', tex, 'file-text');
+    if (bib.length) html += fileGroup('References', bib, 'book-open');
+    if (img.length) html += fileGroup('Assets', img, 'image');
+    if (other.length) html += fileGroup('Build', other, 'settings');
+
     body.innerHTML = html;
-    // Attach remove handlers in JS — no inline onclick needed
-    body.querySelectorAll('.file-remove-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-            e.stopPropagation();
-            removeProjectFile(btn.dataset.name);
+
+    body.querySelectorAll('.file-remove-btn').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.stopPropagation();
+            removeProjectFile(button.dataset.name);
         });
     });
-    lucide.createIcons();
+
+    body.querySelectorAll('.file-entry[data-texname]').forEach(function (entry) {
+        entry.addEventListener('click', function () {
+            openTexInEditor(entry.dataset.texname);
+        });
+    });
+
+    refreshIcons();
 }
 
 function fileGroup(label, files, icon) {
-    return `<div class="file-group">
-        <div class="file-group-label">${label}</div>
-        ${files.map(f => `
-        <div class="file-entry ${f.name === activeTexName ? 'active-file' : ''}"
-             ${f.type === 'tex' ? `data-texname="${escAttr(f.name)}"` : ''}>
-            <i data-lucide="${icon}" style="width:14px; flex-shrink:0"></i>
-            <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" title="${escAttr(f.name)}">${escHtml(f.name)}</span>
-            <button class="file-remove-btn" data-name="${escAttr(f.name)}" title="Remove">
-                <i data-lucide="x" style="width:12px"></i>
-            </button>
-        </div>`).join('')}
-    </div>`;
+    return `
+        <div class="file-group">
+            <div class="file-group-label">${escHtml(label)}</div>
+            ${files.map(function (file) {
+                const isActive = file.name === activeTexName;
+                const isTex = file.type === 'tex';
+                const mainMark = file.main ? ' · main' : '';
+                return `
+                    <div class="file-entry ${isActive ? 'active-file' : ''}" ${isTex ? `data-texname="${escAttr(file.name)}"` : ''}>
+                        <i data-lucide="${icon}" style="width:14px; flex-shrink:0"></i>
+                        <span class="file-entry-name" title="${escAttr(file.name + mainMark)}">${escHtml(displayFileName(file.name))}${file.main ? '<span style="color:var(--text-dim); font-size:10px"> · main</span>' : ''}</span>
+                        <button class="file-remove-btn" data-name="${escAttr(file.name)}" title="Remove" aria-label="Remove file">
+                            <i data-lucide="x" style="width:12px"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
 }
-
-// Wire tex file entry clicks after render
-const _origRenderFilePanel = renderFilePanel;
 
 function openTexInEditor(name) {
     syncEditorToFile();
-    const entry = projectFiles.find(f => f.name === name);
-    if (!entry) return;
+
+    const entry = projectFiles.find(function (file) {
+        return file.name === name;
+    });
+
+    if (!entry || entry.type !== 'tex') return;
+
     activeTexName = name;
-    editor.setValue(atob(entry.content));
+    editor.setValue(decodeBase64Text(entry.content));
     renderFilePanel();
-    // Re-wire clicks
-    document.querySelectorAll('.file-entry[data-texname]').forEach(el => {
-        el.onclick = () => openTexInEditor(el.dataset.texname);
-    });
 }
-
-// Call after every renderFilePanel to wire tex clicks
-function wireFilePanelClicks() {
-    document.querySelectorAll('.file-entry[data-texname]').forEach(el => {
-        el.onclick = () => openTexInEditor(el.dataset.texname);
-    });
-}
-
-// Patch renderFilePanel to always wire clicks after rendering
-const _basePaint = renderFilePanel;
-window.renderFilePanel = function() {
-    _basePaint();
-    wireFilePanelClicks();
-};
-// Re-assign so references use the patched version
-window.renderFilePanel = (function() {
-    return function renderFilePanel() {
-        const body  = document.getElementById('filePanelBody');
-        const tex   = projectFiles.filter(f => f.type === 'tex');
-        const bib   = projectFiles.filter(f => f.type === 'bib');
-        const img   = projectFiles.filter(f => f.type === 'img');
-        const other = projectFiles.filter(f => f.type === 'other');
-        if (!projectFiles.length) {
-            body.innerHTML = '<div style="font-size:10px; color:var(--text-dim); padding:12px;">No assets in project.</div>';
-            return;
-        }
-        let html = '';
-        if (tex.length)   html += fileGroup('Source',     tex,   'file-text');
-        if (bib.length)   html += fileGroup('References', bib,   'book-open');
-        if (img.length)   html += fileGroup('Assets',     img,   'image');
-        if (other.length) html += fileGroup('Build',      other, 'settings');
-        body.innerHTML = html;
-        body.querySelectorAll('.file-remove-btn').forEach(btn => {
-            btn.addEventListener('click', e => { e.stopPropagation(); removeProjectFile(btn.dataset.name); });
-        });
-        body.querySelectorAll('.file-entry[data-texname]').forEach(el => {
-            el.addEventListener('click', () => openTexInEditor(el.dataset.texname));
-        });
-        lucide.createIcons();
-    };
-})();
 
 function removeProjectFile(name) {
-    projectFiles.splice(projectFiles.findIndex(f => f.name === name), 1);
-    if (name === activeTexName) { activeTexName = null; editor.setValue(''); }
+    const index = projectFiles.findIndex(function (file) {
+        return file.name === name;
+    });
+
+    if (index < 0) return;
+
+    const removed = projectFiles[index];
+    projectFiles.splice(index, 1);
+
+    if (removed.name === activeTexName) {
+        const nextTex = projectFiles.find(function (file) {
+            return file.type === 'tex';
+        });
+
+        if (nextTex) {
+            activeTexName = nextTex.name;
+            nextTex.main = true;
+            editor.setValue(decodeBase64Text(nextTex.content));
+        } else {
+            activeTexName = null;
+            editor.setValue('');
+        }
+    }
+
+    if (!projectFiles.some(function (file) { return file.main && file.type === 'tex'; })) {
+        const firstTex = projectFiles.find(function (file) { return file.type === 'tex'; });
+        if (firstTex) firstTex.main = true;
+    }
+
     renderFilePanel();
-    toast(`Removed: ${name}`);
+    clearPdfPreview();
+    toast(`Removed: ${displayFileName(name)}`);
 }
 
-/* ─── Compile ─────────────────────────────────────────────── */
+/* ─── Compile and Preview ──────────────────────────────────── */
 async function compile() {
     syncEditorToFile();
+
     const btn = document.getElementById('compileBtn');
-    btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px"></i> Running';
+    const overlay = document.getElementById('pdfLoadingOverlay');
+    const originalHtml = btn.innerHTML;
+
+    btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px"></i> <span>Running</span>';
     btn.disabled = true;
-    lucide.createIcons();
+    overlay.style.display = 'flex';
+    refreshIcons();
 
     try {
-        const res = await fetch(COMPILE_ENDPOINT, {
+        const filesForCompiler = projectFiles
+            .filter(function (file) {
+                return !(file.type === 'tex' && file.name === activeTexName);
+            })
+            .map(function (file) {
+                return {
+                    path: file.name,
+                    contentBase64: file.content
+                };
+            });
+
+        const response = await fetch(COMPILE_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 latex: editor.getValue(),
-                files: projectFiles
-                    .filter(f => !(f.type === 'tex' && f.name === activeTexName))
-                    .map(f => ({ path: f.name, contentBase64: f.content }))
+                files: filesForCompiler
             })
         });
-        const data = await res.json();
+
+        if (!response.ok) {
+            throw new Error(`Compiler returned HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
 
         if (data.pdf) {
             renderPdf(data.pdf);
+            toast('Compiled successfully');
         } else {
-            clearPdfPreview();
-            document.getElementById('previewPlaceholder').innerHTML =
-                `<div style="padding:32px; color:#f87171; text-align:left; width:100%">
-                    <h4 style="margin-bottom:12px; font-weight:700; font-size:14px">Compile Error</h4>
-                    <pre style="background:rgba(0,0,0,0.3); padding:16px; border-radius:8px; font-size:11px; font-family:var(--font-mono); overflow:auto; border:1px solid rgba(248,113,113,0.1); white-space:pre-wrap; max-height:400px">${escHtml(data.log || data.error || 'Unknown error')}</pre>
-                </div>`;
-            document.getElementById('previewPlaceholder').style.display = 'flex';
+            showCompileError(data.log || data.error || 'Unknown compile error');
         }
     } catch (err) {
-        toast('Compiler unreachable: ' + err.message, true);
+        showCompileError('Compiler unreachable: ' + err.message);
+    } finally {
+        overlay.style.display = 'none';
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        refreshIcons();
     }
+}
 
-    btn.innerHTML = '<i data-lucide="play" style="width:14px; fill:currentColor"></i> Run';
-    btn.disabled = false;
-    lucide.createIcons();
+function showCompileError(message) {
+    clearPdfPreview();
+
+    const placeholder = document.getElementById('previewPlaceholder');
+    placeholder.innerHTML = `
+        <div style="padding:32px; color:#f87171; text-align:left; width:100%; height:100%; overflow:auto;">
+            <h4 style="margin-bottom:12px; font-weight:700; font-size:14px">Compile Error</h4>
+            <pre style="background:rgba(0,0,0,0.3); padding:16px; border-radius:8px; font-size:11px; font-family:var(--font-mono); overflow:auto; border:1px solid rgba(248,113,113,0.1); white-space:pre-wrap; max-height:520px; line-height:1.5">${escHtml(message)}</pre>
+        </div>
+    `;
+    placeholder.style.display = 'flex';
+    toast('Compile failed', true);
 }
 
 function renderPdf(base64) {
-    if (currentPdfBlobUrl) { URL.revokeObjectURL(currentPdfBlobUrl); currentPdfBlobUrl = null; }
+    if (currentPdfBlobUrl) {
+        URL.revokeObjectURL(currentPdfBlobUrl);
+        currentPdfBlobUrl = null;
+    }
+
     const binary = atob(base64);
-    const bytes  = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
     const blob = new Blob([bytes], { type: 'application/pdf' });
     currentPdfBlobUrl = URL.createObjectURL(blob);
-    document.getElementById('previewPlaceholder').style.display = 'none';
-    document.getElementById('previewToolbar').style.display     = 'flex';
+
+    const placeholder = document.getElementById('previewPlaceholder');
+    const toolbar = document.getElementById('previewToolbar');
     const frame = document.getElementById('pdfFrame');
+
+    placeholder.style.display = 'none';
+    toolbar.style.display = 'flex';
     frame.style.display = 'block';
     frame.src = currentPdfBlobUrl;
+
     document.getElementById('downloadPdfBtn').disabled = false;
 }
 
 function reloadPdfFrame() {
-    if (currentPdfBlobUrl) document.getElementById('pdfFrame').src = currentPdfBlobUrl;
+    if (!currentPdfBlobUrl) return;
+    document.getElementById('pdfFrame').src = currentPdfBlobUrl;
 }
 
 function clearPdfPreview() {
-    if (currentPdfBlobUrl) { URL.revokeObjectURL(currentPdfBlobUrl); currentPdfBlobUrl = null; }
+    if (currentPdfBlobUrl) {
+        URL.revokeObjectURL(currentPdfBlobUrl);
+        currentPdfBlobUrl = null;
+    }
+
     const frame = document.getElementById('pdfFrame');
     frame.src = 'about:blank';
     frame.style.display = 'none';
+
     document.getElementById('previewToolbar').style.display = 'none';
     document.getElementById('downloadPdfBtn').disabled = true;
-    const ph = document.getElementById('previewPlaceholder');
-    ph.innerHTML = `
+
+    const placeholder = document.getElementById('previewPlaceholder');
+    placeholder.innerHTML = `
         <div style="width:48px; height:48px; background:var(--bg-panel); border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:16px">
             <i data-lucide="eye-off" style="width:20px; color:var(--text-dim)"></i>
         </div>
         <h3 style="color:var(--text-secondary); margin-bottom:8px; font-weight:600">No output yet</h3>
-        <p style="font-size:12px; color:var(--text-muted); max-width:200px">Run the compiler to see the rendered PDF here.</p>`;
-    ph.style.display = 'flex';
-    lucide.createIcons();
+        <p style="font-size:12px; color:var(--text-muted); max-width:200px">Run the compiler to see the rendered PDF here.</p>
+    `;
+    placeholder.style.display = 'flex';
+    refreshIcons();
 }
 
-/* ─── Download ────────────────────────────────────────────── */
+/* ─── Downloads ────────────────────────────────────────────── */
 function downloadTeX() {
-    const blob = new Blob([editor.getValue()], { type: 'text/plain' });
-    triggerDownload(URL.createObjectURL(blob), (document.getElementById('docTitleInput').value || 'doc') + '.tex');
+    syncEditorToFile();
+
+    const fileName = activeTexName || ((document.getElementById('docTitleInput').value || 'document') + '.tex');
+    const blob = new Blob([editor.getValue()], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    triggerDownload(url, displayFileName(fileName));
+
+    setTimeout(function () {
+        URL.revokeObjectURL(url);
+    }, 1000);
 }
+
 function downloadPDF() {
     if (!currentPdfBlobUrl) return;
-    triggerDownload(currentPdfBlobUrl, (document.getElementById('docTitleInput').value || 'doc') + '.pdf');
-}
-function triggerDownload(url, filename) {
-    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    const title = sanitizeFileName(document.getElementById('docTitleInput').value || 'document');
+    triggerDownload(currentPdfBlobUrl, title + '.pdf');
 }
 
-/* ─── Helpers ─────────────────────────────────────────────── */
+function triggerDownload(url, filename) {
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+}
+
+/* ─── Helpers ──────────────────────────────────────────────── */
 function classifyFile(name) {
-    const ext = name.split('.').pop().toLowerCase();
+    const ext = getExtension(name);
+
     if (ext === 'tex') return 'tex';
-    if (ext === 'bib') return 'bib';
-    if (['png','jpg','jpeg','gif','svg','eps'].includes(ext)) return 'img';
+    if (['bib', 'bst', 'bbx', 'cbx'].includes(ext)) return 'bib';
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'eps'].includes(ext)) return 'img';
+
     return 'other';
 }
-function isBinaryPath(name) {
-    return ['png','jpg','jpeg','gif','pdf','eps','zip'].includes(name.split('.').pop().toLowerCase());
+
+function getExtension(name) {
+    const clean = String(name || '').split('?')[0].split('#')[0];
+    const parts = clean.split('.');
+    return parts.length > 1 ? parts.pop().toLowerCase() : '';
 }
+
+function isBinaryPath(name) {
+    return ['png', 'jpg', 'jpeg', 'gif', 'pdf', 'eps', 'zip'].includes(getExtension(name));
+}
+
+function isMacSystemFile(name) {
+    return name.includes('__MACOSX/') || name.endsWith('.DS_Store');
+}
+
+function normalizeZipPath(path) {
+    return String(path || '').replace(/^\/+/, '');
+}
+
+function shouldMarkAsMainTex(name, type, existingMain) {
+    if (type !== 'tex') return false;
+    if (existingMain) return false;
+
+    const lowered = name.toLowerCase();
+    if (lowered.endsWith('/main.tex')) return true;
+    if (lowered === 'main.tex') return true;
+
+    return true;
+}
+
 function fileToBase64(file) {
-    return new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = e => res(e.target.result.split(',')[1]);
-        r.onerror = rej;
-        r.readAsDataURL(file);
+    return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            const result = event.target.result || '';
+            const commaIndex = result.indexOf(',');
+            resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+        };
+        reader.onerror = function () {
+            reject(new Error('Could not read ' + file.name));
+        };
+        reader.readAsDataURL(file);
     });
 }
-function syncEditorToFile() { if (activeTexName) upsertTexFile(activeTexName, editor.getValue(), true); }
+
+function syncEditorToFile() {
+    if (!activeTexName) {
+        activeTexName = 'main.tex';
+    }
+
+    upsertTexFile(activeTexName, editor.getValue(), true);
+}
+
 function upsertTexFile(name, plainText, isMain) {
-    const b64 = btoa(unescape(encodeURIComponent(plainText)));
-    const idx = projectFiles.findIndex(f => f.name === name);
-    const entry = { name, content: b64, type: 'tex', main: !!isMain };
-    if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
+    const b64 = encodeBase64Text(plainText);
+
+    if (isMain) {
+        projectFiles.forEach(function (file) {
+            if (file.type === 'tex') file.main = false;
+        });
+    }
+
+    const index = projectFiles.findIndex(function (file) {
+        return file.name === name;
+    });
+
+    const entry = {
+        name: name,
+        content: b64,
+        type: 'tex',
+        main: !!isMain
+    };
+
+    if (index >= 0) {
+        projectFiles[index] = entry;
+    } else {
+        projectFiles.push(entry);
+    }
+
     activeTexName = name;
 }
+
+function encodeBase64Text(text) {
+    return btoa(unescape(encodeURIComponent(String(text || ''))));
+}
+
+function decodeBase64Text(base64) {
+    try {
+        return decodeURIComponent(escape(atob(base64 || '')));
+    } catch (_err) {
+        try {
+            return atob(base64 || '');
+        } catch (_innerErr) {
+            return '';
+        }
+    }
+}
+
+function displayFileName(name) {
+    const value = String(name || '');
+    const parts = value.split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : value;
+}
+
+function sanitizeFileName(name) {
+    return String(name || 'document')
+        .replace(/[\\/:*?"<>|]+/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim() || 'document';
+}
+
 function highlightActiveProject(id) {
-    document.querySelectorAll('.project-item').forEach(el => el.classList.toggle('active', el.dataset.id === id));
-}
-function toggleDropdown() { document.getElementById('importDropdown').classList.toggle('open'); }
-function closeDropdown()  { document.getElementById('importDropdown').classList.remove('open'); }
-
-// Safe HTML/attribute escaping — prevents XSS and inline-onclick parse errors
-function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function escAttr(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    document.querySelectorAll('.project-item').forEach(function (item) {
+        item.classList.toggle('active', !!id && item.dataset.id === id);
+    });
 }
 
-/* ─── Toast ───────────────────────────────────────────────── */
-let toastTimer;
-function toast(msg, isError = false) {
+function escHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function escAttr(value) {
+    return escHtml(value);
+}
+
+/* ─── Toast ────────────────────────────────────────────────── */
+function toast(message, isError) {
     const el = document.getElementById('toast');
+
     el.innerHTML = isError
-        ? `<i data-lucide="alert-circle" style="width:16px"></i> ${escHtml(msg)}`
-        : `<i data-lucide="check-circle" style="width:16px"></i> ${escHtml(msg)}`;
+        ? `<i data-lucide="alert-circle" style="width:16px"></i> ${escHtml(message)}`
+        : `<i data-lucide="check-circle" style="width:16px"></i> ${escHtml(message)}`;
+
     el.className = isError ? 'show error-toast' : 'show';
-    lucide.createIcons();
+    refreshIcons();
+
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+    toastTimer = setTimeout(function () {
+        el.classList.remove('show');
+    }, 3000);
 }
 
-/* ─── Confirm dialog ──────────────────────────────────────── */
-// Named showConfirm to avoid shadowing native window.confirm
-let _confirmResolve = null;
-function showConfirm(title, msg) {
+/* ─── Confirm Dialog ───────────────────────────────────────── */
+function showConfirm(title, message) {
     document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmMsg').textContent   = msg;
+    document.getElementById('confirmMsg').textContent = message;
     document.getElementById('confirmModal').classList.add('show');
-    return new Promise(res => { _confirmResolve = res; });
-}
-function resolveConfirm(val) {
-    document.getElementById('confirmModal').classList.remove('show');
-    if (_confirmResolve) { _confirmResolve(val); _confirmResolve = null; }
+
+    return new Promise(function (resolve) {
+        confirmResolve = resolve;
+    });
 }
 
-/* ─── Upload overlay ──────────────────────────────────────── */
+function resolveConfirm(value) {
+    document.getElementById('confirmModal').classList.remove('show');
+
+    if (confirmResolve) {
+        confirmResolve(value);
+        confirmResolve = null;
+    }
+}
+
+/* ─── Upload Overlay ───────────────────────────────────────── */
 function showUploadOverlay(title, total) {
     document.getElementById('uploadTitle').textContent = title;
-    document.getElementById('uploadMsg').textContent   = `0 / ${total} items`;
+    document.getElementById('uploadMsg').textContent = `0 / ${total} items`;
     document.getElementById('progressFill').style.width = '0%';
     document.getElementById('uploadOverlay').classList.add('show');
 }
+
 function updateProgress(done, total) {
-    document.getElementById('uploadMsg').textContent   = `${done} / ${total} items`;
-    document.getElementById('progressFill').style.width = Math.round(done / total * 100) + '%';
+    const safeTotal = total || 1;
+    document.getElementById('uploadMsg').textContent = `${done} / ${safeTotal} items`;
+    document.getElementById('progressFill').style.width = Math.round(done / safeTotal * 100) + '%';
 }
-function hideUploadOverlay() { document.getElementById('uploadOverlay').classList.remove('show'); }
+
+function hideUploadOverlay() {
+    document.getElementById('uploadOverlay').classList.remove('show');
+}
 </script>
 </body>
 </html>
