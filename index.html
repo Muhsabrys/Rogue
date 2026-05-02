@@ -25,8 +25,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/stex/stex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -466,17 +466,19 @@ body {
 
 }
 
-.toolbar-actions { display: flex; gap: 7px; flex-shrink: 0; }
+.toolbar-actions { display: flex; gap: 7px; flex-shrink: 0; align-items: center; }
 
 
 
 .title-input {
 
-    flex: 1;
+    width: 200px;
 
-    padding: 8px 14px;
+    flex-shrink: 0;
 
-    font-size: 13px;
+    padding: 7px 12px;
+
+    font-size: 12.5px;
 
     font-weight: 500;
 
@@ -489,8 +491,6 @@ body {
     background: var(--bg-input);
 
     color: var(--text-bright);
-
-    min-width: 0;
 
     transition: border-color var(--t), box-shadow var(--t);
 
@@ -509,6 +509,70 @@ body {
 }
 
 .title-input::placeholder { color: var(--text-dim); }
+
+
+
+/* ─── Toolbar divider ────────────────────────────────────────── */
+
+.toolbar-divider {
+
+    width: 1px;
+
+    height: 22px;
+
+    background: var(--border-subtle);
+
+    flex-shrink: 0;
+
+}
+
+
+
+/* ─── Editor mini-toolbar (above the writing area) ──────────── */
+
+.editor-mini-toolbar {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 6px 10px;
+
+    background: var(--bg-surface);
+
+    border-bottom: 1px solid var(--border-faint);
+
+    flex-shrink: 0;
+
+}
+
+.editor-mini-toolbar .btn {
+
+    padding: 4px 9px;
+
+    font-size: 11.5px;
+
+    background: transparent;
+
+    border-color: transparent;
+
+    color: var(--text-dim);
+
+}
+
+.editor-mini-toolbar .btn:hover {
+
+    background: var(--bg-elevated);
+
+    border-color: var(--border-subtle);
+
+    color: var(--text-main);
+
+}
+
+.editor-mini-toolbar .toolbar-divider { height: 16px; }
 
 
 
@@ -764,11 +828,13 @@ body {
 
 /* ─── Editor Area ───────────────────────────────────────────── */
 
-.editor-area { flex: 1; display: flex; min-width: 0; }
+.editor-area { flex: 1; display: flex; min-width: 0; flex-direction: column; }
 
 
 
 /* ─── File Panel ────────────────────────────────────────────── */
+
+.editor-and-files { display: flex; flex: 1; min-height: 0; }
 
 .file-panel {
 
@@ -952,7 +1018,7 @@ body {
 
     line-height: 1.7 !important;
 
-    background: #1e1f23 !important; /* slightly offset from monokai for depth */
+    background: #1e1f23 !important;
 
 }
 
@@ -961,6 +1027,266 @@ body {
 .CodeMirror-gutters { border-right: 1px solid #2e2e30 !important; }
 
 .CodeMirror-linenumber { color: #4a4a5a !important; }
+
+/* Search highlight */
+
+.cm-searching {
+    background: rgba(212,148,58,0.35) !important;
+    outline: 1px solid rgba(212,148,58,0.6);
+    border-radius: 2px;
+}
+
+
+
+/* ─── Status Bar ─────────────────────────────────────────────── */
+
+.status-bar {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0;
+
+    padding: 0 14px;
+
+    height: 26px;
+
+    background: var(--bg-panel);
+
+    border-top: 1px solid var(--border-faint);
+
+    flex-shrink: 0;
+
+    justify-content: space-between;
+
+}
+
+.status-left, .status-right {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+
+}
+
+.status-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    font-size: 11px;
+
+    color: var(--text-dim);
+
+    font-family: var(--font-mono);
+
+    letter-spacing: 0.03em;
+
+    white-space: nowrap;
+
+}
+
+.status-item span { color: var(--text-muted); }
+
+.status-sep {
+
+    width: 1px;
+
+    height: 12px;
+
+    background: var(--border-faint);
+
+}
+
+
+
+/* ─── Search & Replace Panel ─────────────────────────────────── */
+
+.search-panel {
+
+    display: none;
+
+    flex-direction: column;
+
+    background: var(--bg-panel);
+
+    border-bottom: 1px solid var(--border-subtle);
+
+    padding: 10px 14px;
+
+    gap: 8px;
+
+    flex-shrink: 0;
+
+    animation: slideDown 0.16s var(--ease);
+
+}
+
+@keyframes slideDown {
+
+    from { opacity: 0; transform: translateY(-8px); }
+
+    to   { opacity: 1; transform: translateY(0); }
+
+}
+
+.search-panel.open { display: flex; }
+
+
+
+.search-row {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+}
+
+.search-label {
+
+    font-size: 10.5px;
+
+    color: var(--text-dim);
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+
+    width: 52px;
+
+    flex-shrink: 0;
+
+}
+
+.search-input {
+
+    flex: 1;
+
+    padding: 6px 10px;
+
+    font-size: 12.5px;
+
+    font-family: var(--font-mono);
+
+    border: 1px solid var(--border-subtle);
+
+    border-radius: var(--radius-sm);
+
+    background: var(--bg-input);
+
+    color: var(--text-bright);
+
+    transition: border-color var(--t), box-shadow var(--t);
+
+    min-width: 0;
+
+}
+
+.search-input:focus {
+
+    outline: none;
+
+    border-color: var(--amber);
+
+    box-shadow: 0 0 0 2px var(--amber-glow);
+
+}
+
+.search-input::placeholder { color: var(--text-dim); }
+
+.search-input.no-match { border-color: var(--red); box-shadow: 0 0 0 2px var(--red-dim); }
+
+.search-actions { display: flex; gap: 5px; flex-shrink: 0; }
+
+.search-actions .btn { padding: 5px 11px; font-size: 11.5px; }
+
+.search-match-info {
+
+    font-size: 11px;
+
+    color: var(--text-dim);
+
+    font-family: var(--font-mono);
+
+    white-space: nowrap;
+
+    min-width: 60px;
+
+}
+
+.search-opts {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    margin-left: 4px;
+
+}
+
+.search-opt-label {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    font-size: 11px;
+
+    color: var(--text-muted);
+
+    cursor: pointer;
+
+    user-select: none;
+
+}
+
+.search-opt-label input[type=checkbox] {
+
+    accent-color: var(--amber);
+
+    width: 12px; height: 12px;
+
+    cursor: pointer;
+
+}
+
+.search-close {
+
+    background: transparent;
+
+    border: none;
+
+    color: var(--text-dim);
+
+    cursor: pointer;
+
+    padding: 4px;
+
+    border-radius: var(--radius-sm);
+
+    line-height: 0;
+
+    transition: color var(--t), background var(--t);
+
+    flex-shrink: 0;
+
+}
+
+.search-close:hover { color: var(--text-main); background: var(--bg-elevated); }
 
 
 
@@ -1532,8 +1858,6 @@ body {
 
 
 
-/* Compile button pulse while loading */
-
 @keyframes compilePulse {
 
     0%, 100% { box-shadow: 0 0 16px rgba(212,148,58,0.2); }
@@ -1686,43 +2010,189 @@ body {
 
         <div class="editor-area">
 
+            <!-- Files + Editor -->
 
+            <div class="editor-and-files">
 
-            <!-- File panel -->
+                <!-- File panel -->
 
-            <div class="file-panel">
+                <div class="file-panel">
 
-                <div class="file-panel-header">
+                    <div class="file-panel-header">
 
-                    <div class="sidebar-label">Files</div>
+                        <div class="sidebar-label">Files</div>
 
-                    <div class="file-panel-actions">
+                        <div class="file-panel-actions">
 
-                        <button class="btn" onclick="triggerAddFiles()">
+                            <button class="btn" onclick="triggerAddFiles()">
 
-                            <i data-lucide="plus" style="width:12px;height:12px"></i> Add files
+                                <i data-lucide="plus" style="width:12px;height:12px"></i> Add files
 
-                        </button>
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="file-panel-body" id="filePanelBody">
+
+                        <div class="empty-hint">No files yet.</div>
 
                     </div>
 
                 </div>
 
-                <div class="file-panel-body" id="filePanelBody">
+                <!-- Code editor column -->
 
-                    <div class="empty-hint">No files yet.</div>
+                <div class="editor-column">
+
+                    <!-- Mini-toolbar: undo/redo/search — sits right above the writing area -->
+
+                    <div class="editor-mini-toolbar">
+
+                        <button class="btn" id="undoBtn" onclick="editor.undo()" title="Undo (Ctrl+Z)">
+
+                            <i data-lucide="undo-2" style="width:13px;height:13px"></i>
+
+                        </button>
+
+                        <button class="btn" id="redoBtn" onclick="editor.redo()" title="Redo (Ctrl+Y)">
+
+                            <i data-lucide="redo-2" style="width:13px;height:13px"></i>
+
+                        </button>
+
+                        <div class="toolbar-divider"></div>
+
+                        <button class="btn" onclick="toggleSearchPanel()" title="Search & Replace (Ctrl+F)">
+
+                            <i data-lucide="search" style="width:13px;height:13px"></i> Find
+
+                        </button>
+
+                    </div>
+
+                    <!-- Search & Replace Panel -->
+
+                    <div class="search-panel" id="searchPanel">
+
+                        <div class="search-row">
+
+                            <span class="search-label">Find</span>
+
+                            <input type="text" id="searchInput" class="search-input" placeholder="Search…" oninput="onSearchInput()" onkeydown="onSearchKey(event)">
+
+                            <div class="search-actions">
+
+                                <button class="btn" onclick="searchPrev()" title="Previous (Shift+Enter)">
+
+                                    <i data-lucide="chevron-up" style="width:13px;height:13px"></i>
+
+                                </button>
+
+                                <button class="btn" onclick="searchNext()" title="Next (Enter)">
+
+                                    <i data-lucide="chevron-down" style="width:13px;height:13px"></i>
+
+                                </button>
+
+                            </div>
+
+                            <span class="search-match-info" id="matchInfo"></span>
+
+                            <div class="search-opts">
+
+                                <label class="search-opt-label">
+
+                                    <input type="checkbox" id="searchCase" onchange="onSearchInput()"> Case
+
+                                </label>
+
+                                <label class="search-opt-label">
+
+                                    <input type="checkbox" id="searchRegex" onchange="onSearchInput()"> Regex
+
+                                </label>
+
+                            </div>
+
+                            <button class="search-close" onclick="closeSearchPanel()" title="Close (Esc)">
+
+                                <i data-lucide="x" style="width:14px;height:14px"></i>
+
+                            </button>
+
+                        </div>
+
+                        <div class="search-row">
+
+                            <span class="search-label">Replace</span>
+
+                            <input type="text" id="replaceInput" class="search-input" placeholder="Replace with…" onkeydown="onReplaceKey(event)">
+
+                            <div class="search-actions">
+
+                                <button class="btn" onclick="replaceOne()">Replace</button>
+
+                                <button class="btn" onclick="replaceAll()">All</button>
+
+                            </div>
+
+                            <span class="search-match-info" id="replaceInfo" style="color:var(--green)"></span>
+
+                        </div>
+
+                    </div>
+
+                    <textarea id="editor"></textarea>
 
                 </div>
 
             </div>
 
+            <!-- Status Bar -->
 
+            <div class="status-bar">
 
-            <!-- Code editor -->
+                <div class="status-left">
 
-            <div class="editor-column">
+                    <div class="status-item">
 
-                <textarea id="editor"></textarea>
+                        Ln <span id="statusLine">1</span> &nbsp;Col <span id="statusCol">1</span>
+
+                    </div>
+
+                    <div class="status-sep"></div>
+
+                    <div class="status-item">
+
+                        <span id="statusSel" style="display:none"></span>
+
+                    </div>
+
+                </div>
+
+                <div class="status-right">
+
+                    <div class="status-item">
+
+                        <span id="statusWords">0</span> words
+
+                    </div>
+
+                    <div class="status-sep"></div>
+
+                    <div class="status-item">
+
+                        <span id="statusChars">0</span> chars
+
+                    </div>
+
+                    <div class="status-sep"></div>
+
+                    <div class="status-item" style="color:var(--text-dim)">LaTeX</div>
+
+                </div>
 
             </div>
 
@@ -1930,9 +2400,14 @@ let projectFiles  = [];
 
 let activeTexName = null;
 
-
-
 let currentPdfBlobUrl = null;
+
+
+
+/* ─── Search state ─────────────────────────────────────────── */
+
+let searchMatches   = [];   // [{from, to}] all match positions
+let searchIndex     = -1;   // current match index
 
 
 
@@ -1946,9 +2421,17 @@ window.onload = () => {
 
         extraKeys: {
 
-            'Ctrl-S': () => saveToCloud(),
+            'Ctrl-S':     () => saveToCloud(),
 
-            'Ctrl-Enter': () => compile()
+            'Ctrl-Enter': () => compile(),
+
+            'Ctrl-F':     () => toggleSearchPanel(),
+
+            'Ctrl-H':     () => toggleSearchPanel(),
+
+            'Ctrl-Z':     () => editor.undo(),
+
+            'Ctrl-Y':     () => editor.redo(),
 
         }
 
@@ -1957,12 +2440,337 @@ window.onload = () => {
     loadBlankTemplate('Computational linguistics!? What is that?', 'Muhammad S. Abdo');
 
     checkSession();
+    initStatusBar();
 
     lucide.createIcons();
 
     document.addEventListener('click', e => { if (!e.target.closest('.dropdown-wrapper')) closeDropdown(); });
 
+    // Close search on Escape anywhere
+    document.addEventListener('keydown', e => {
+
+        if (e.key === 'Escape') closeSearchPanel();
+
+    });
+
 };
+
+
+
+/* ─── Status Bar ───────────────────────────────────────────── */
+
+function initStatusBar() {
+
+    updateStatusBar();
+
+    editor.on('cursorActivity', updateStatusBar);
+
+    editor.on('change', updateStatusBar);
+
+}
+
+
+
+function updateStatusBar() {
+
+    const cursor = editor.getCursor();
+
+    document.getElementById('statusLine').textContent = cursor.line + 1;
+
+    document.getElementById('statusCol').textContent  = cursor.ch + 1;
+
+
+
+    const sel = editor.getSelection();
+
+    const selEl = document.getElementById('statusSel');
+
+    if (sel.length > 0) {
+
+        selEl.textContent = `${sel.length} selected`;
+
+        selEl.style.display = 'inline';
+
+    } else {
+
+        selEl.style.display = 'none';
+
+    }
+
+
+
+    const text  = editor.getValue();
+    // Strip LaTeX commands for word count so \section{Foo} counts as "Foo"
+    const plain = text.replace(/\\[a-zA-Z]+\*?(\{[^}]*\}|\[[^\]]*\])*/g, ' ').replace(/[{}[\]]/g, ' ');
+    const words = plain.trim() === '' ? 0 : plain.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+    document.getElementById('statusWords').textContent = words.toLocaleString();
+
+    document.getElementById('statusChars').textContent = text.length.toLocaleString();
+
+}
+
+
+
+/* ─── Search & Replace ─────────────────────────────────────── */
+
+function toggleSearchPanel() {
+
+    const panel = document.getElementById('searchPanel');
+
+    if (panel.classList.contains('open')) {
+
+        closeSearchPanel();
+
+    } else {
+
+        panel.classList.add('open');
+
+        // Pre-fill with selected text if any
+
+        const sel = editor.getSelection();
+
+        if (sel && sel.length < 200) document.getElementById('searchInput').value = sel;
+
+        document.getElementById('searchInput').focus();
+
+        document.getElementById('searchInput').select();
+
+        runSearch();
+
+    }
+
+}
+
+
+
+function closeSearchPanel() {
+
+    document.getElementById('searchPanel').classList.remove('open');
+
+    clearSearchHighlights();
+
+    searchMatches = []; searchIndex = -1;
+
+    document.getElementById('matchInfo').textContent = '';
+
+    document.getElementById('replaceInfo').textContent = '';
+
+    editor.focus();
+
+}
+
+
+
+function getSearchQuery() {
+
+    const raw  = document.getElementById('searchInput').value;
+
+    const caseSensitive = document.getElementById('searchCase').checked;
+
+    const useRegex      = document.getElementById('searchRegex').checked;
+
+    if (!raw) return null;
+
+    try {
+
+        return useRegex
+
+            ? new RegExp(raw, caseSensitive ? 'g' : 'gi')
+
+            : new RegExp(raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseSensitive ? 'g' : 'gi');
+
+    } catch { return null; }
+
+}
+
+
+
+// Collect all matches in the document
+function runSearch() {
+
+    clearSearchHighlights();
+
+    searchMatches = []; searchIndex = -1;
+
+    const query = getSearchQuery();
+
+    const input = document.getElementById('searchInput');
+
+    const info  = document.getElementById('matchInfo');
+
+
+
+    if (!query) { input.classList.remove('no-match'); info.textContent = ''; return; }
+
+
+
+    const text = editor.getValue();
+
+    let m;
+
+    // Reset regex lastIndex
+    query.lastIndex = 0;
+
+    while ((m = query.exec(text)) !== null) {
+
+        const from = editor.posFromIndex(m.index);
+
+        const to   = editor.posFromIndex(m.index + m[0].length);
+
+        searchMatches.push({ from, to });
+
+        editor.markText(from, to, { className: 'cm-searching' });
+
+        if (query.lastIndex === m.index) { query.lastIndex++; } // avoid infinite loop on zero-length match
+
+    }
+
+
+
+    if (searchMatches.length === 0) {
+
+        input.classList.add('no-match');
+
+        info.textContent = 'No matches';
+
+    } else {
+
+        input.classList.remove('no-match');
+
+        // Jump to nearest match from cursor
+
+        const cur = editor.getCursor();
+
+        searchIndex = searchMatches.findIndex(m => {
+
+            if (m.from.line > cur.line) return true;
+
+            if (m.from.line === cur.line && m.from.ch >= cur.ch) return true;
+
+            return false;
+
+        });
+
+        if (searchIndex === -1) searchIndex = 0;
+
+        jumpToMatch(searchIndex);
+
+    }
+
+}
+
+
+
+function jumpToMatch(idx) {
+
+    if (!searchMatches.length) return;
+
+    searchIndex = (idx + searchMatches.length) % searchMatches.length;
+
+    const m = searchMatches[searchIndex];
+
+    editor.setSelection(m.from, m.to);
+
+    editor.scrollIntoView({ from: m.from, to: m.to }, 100);
+
+    document.getElementById('matchInfo').textContent = `${searchIndex + 1} / ${searchMatches.length}`;
+
+}
+
+
+
+function searchNext() { if (searchMatches.length) jumpToMatch(searchIndex + 1); }
+
+function searchPrev() { if (searchMatches.length) jumpToMatch(searchIndex - 1); }
+
+
+
+function clearSearchHighlights() {
+
+    editor.getAllMarks().forEach(m => m.clear());
+
+}
+
+
+
+function onSearchInput() {
+
+    // Debounce slightly so fast typing isn't sluggish on large docs
+
+    clearTimeout(onSearchInput._t);
+
+    onSearchInput._t = setTimeout(runSearch, 120);
+
+}
+
+
+
+function onSearchKey(e) {
+
+    if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? searchPrev() : searchNext(); }
+
+    if (e.key === 'Escape') { e.preventDefault(); closeSearchPanel(); }
+
+}
+
+function onReplaceKey(e) {
+
+    if (e.key === 'Enter') { e.preventDefault(); replaceOne(); }
+
+}
+
+
+
+function replaceOne() {
+
+    if (!searchMatches.length) return;
+
+    const replacement = document.getElementById('replaceInput').value;
+
+    const m = searchMatches[searchIndex];
+
+    editor.replaceRange(replacement, m.from, m.to);
+
+    document.getElementById('replaceInfo').textContent = 'Replaced 1';
+
+    setTimeout(() => { document.getElementById('replaceInfo').textContent = ''; }, 1800);
+
+    runSearch(); // rebuild matches after change
+
+}
+
+
+
+function replaceAll() {
+
+    const query = getSearchQuery();
+
+    if (!query) return;
+
+    const text    = editor.getValue();
+
+    query.lastIndex = 0;
+
+    const newText = text.replace(query, document.getElementById('replaceInput').value);
+
+    const count   = (text.match(query) || []).length;
+
+    if (count === 0) { document.getElementById('replaceInfo').textContent = 'No matches'; return; }
+
+    editor.setValue(newText);
+
+    document.getElementById('replaceInfo').textContent = `Replaced ${count}`;
+
+    setTimeout(() => { document.getElementById('replaceInfo').textContent = ''; }, 2200);
+
+    clearSearchHighlights();
+
+    searchMatches = []; searchIndex = -1;
+
+    document.getElementById('matchInfo').textContent = '';
+
+}
 
 
 
