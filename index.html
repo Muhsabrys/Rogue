@@ -3308,25 +3308,17 @@ function openFileEntry(name, type) {
 
 function openBibInEditor(name, entry) {
 
-    // Show bib/text files read-only in the editor (don't sync back as tex)
-
     syncEditorToFile();
+
+    activeTexName = name;
+
+    editor.setOption('readOnly', false);
 
     const text = decodeURIComponent(escape(atob(entry.content)));
 
     editor.setValue(text);
 
-    editor.setOption('readOnly', name !== activeTexName ? 'nocursor' : false);
-
-    // Visually mark it as active without changing activeTexName
-
-    document.querySelectorAll('.file-entry').forEach(el => el.classList.remove('active-file'));
-
-    const entries = document.querySelectorAll('.file-entry');
-
-    entries.forEach(el => { if (el.title === name) el.classList.add('active-file'); });
-
-    toast(`Viewing ${name} (read-only)`);
+    renderFilePanel();
 
 }
 
@@ -3698,7 +3690,16 @@ function fileToBase64(file) {
 
 }
 
-function syncEditorToFile() { if (activeTexName) upsertTexFile(activeTexName, editor.getValue(), true); }
+function syncEditorToFile() {
+    if (!activeTexName) return;
+    const existing = projectFiles.find(f => f.name === activeTexName);
+    const type = existing ? existing.type : 'tex';
+    const isMain = existing ? !!existing.main : true;
+    const b64 = btoa(unescape(encodeURIComponent(editor.getValue())));
+    const idx = projectFiles.findIndex(f => f.name === activeTexName);
+    const entry = { name: activeTexName, content: b64, type, main: isMain };
+    if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
+}
 
 function upsertTexFile(name, plainText, isMain) {
 
