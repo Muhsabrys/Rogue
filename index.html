@@ -3,7 +3,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -3105,6 +3104,8 @@ async function handleImportFolder(input) {
     currentDocId = null; projectFiles = [];
 
     const folderName = files[0].webkitRelativePath.split('/')[0];
+    const cleanName = file.webkitRelativePath.replace(/\\/g, '/');
+    projectFiles.push({ name: cleanName, content: base64, type, main: isMain });
 
     document.getElementById('docTitleInput').value = folderName;
 
@@ -3339,15 +3340,17 @@ function syncEditorToFile() {
     const existing = projectFiles.find(f => f.name === activeTexName);
     const type = existing ? existing.type : 'tex';
     const isMain = existing ? !!existing.main : true;
-    // Use safe encoder
+    
+    // Switch to the safe helper
     const b64 = utf8_to_b64(editor.getValue());
+    
     const idx = projectFiles.findIndex(f => f.name === activeTexName);
     const entry = { name: activeTexName, content: b64, type, main: isMain };
     if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
 }
 
 function upsertTexFile(name, plainText, isMain) {
-    // Use safe encoder
+    // Switch to the safe helper
     const b64 = utf8_to_b64(plainText);
     const idx = projectFiles.findIndex(f => f.name === name);
     const entry = { name, content: b64, type: 'tex', main: !!isMain };
@@ -3691,7 +3694,7 @@ async function downloadProjectZip() {
     const zip = new JSZip();
     const projectTitle = document.getElementById('docTitleInput').value.trim() || 'RogueTeX_Project';
     
-    // 1. Sync current editor content to our projectFiles array
+    // 1. Force sync the current editor text into the projectFiles array
     syncEditorToFile();
 
     if (projectFiles.length === 0) {
@@ -3705,30 +3708,41 @@ async function downloadProjectZip() {
     lucide.createIcons();
 
     try {
-        // 2. Add each file from projectFiles to the ZIP
+        // 2. Loop through assets and add to ZIP as raw binary
         projectFiles.forEach(file => {
-            // We use atob to turn the base64 back into binary
-            const binaryString = atob(file.content);
+            // Standard Base64 to Binary conversion
+            const binaryString = window.atob(file.content);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
             }
-            zip.file(file.name, bytes);
+            // JSZip is smart enough to handle Uint8Array correctly
+            zip.file(file.name, bytes, { binary: true });
         });
 
-        // 3. Generate and trigger download
-        const content = await zip.generateAsync({ type: "blob" });
+        // 3. Generate the ZIP blob
+        const content = await zip.generateAsync({ 
+            type: "blob",
+            compression: "DEFLATE",
+            compressionOptions: { level: 6 } 
+        });
+
+        // 4. Trigger the download
         const url = URL.createObjectURL(content);
         const a = document.createElement('a');
         a.href = url;
         a.download = `${projectTitle}.zip`;
+        document.body.appendChild(a); // Append for better Firefox support
         a.click();
+        document.body.removeChild(a);
         
-        URL.revokeObjectURL(url);
-        toast("Project ZIP ready");
+        // Cleanup and Notify
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        toast("Project archived ✓");
+
     } catch (err) {
-        console.error(err);
-        toast("ZIP failed", true);
+        console.error("ZIP Error:", err);
+        toast("ZIP export failed", true);
     } finally {
         zipBtn.innerHTML = originalContent;
         lucide.createIcons();
