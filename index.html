@@ -2418,1396 +2418,555 @@ body {
 
 <script>
 
+<script>
 lucide.createIcons();
 
-
-
 const COMPILE_ENDPOINT = 'https://muhsabrys-rogue.hf.space/compile';
-
 const SB_URL = 'https://suxvtsnkvjazrzhjtocg.supabase.co';
-
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1eHZ0c25rdmphenJ6aGp0b2NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzExODUsImV4cCI6MjA5MzE0NzE4NX0.zglAuvR1cNrCENhQPz4bYeX2tfKwatbmQye1Ge71bVQ';
-
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
-
-
 let editor, currentUser, currentDocId;
-
 let projectFiles  = [];
-
 let activeTexName = null;
-
 let currentPdfBlobUrl = null;
 
-
-
 /* ─── Search state ─────────────────────────────────────────── */
-
-let searchMatches   = [];   // [{from, to}] all match positions
-let searchIndex     = -1;   // current match index
-
-
+let searchMatches   = [];   
+let searchIndex     = -1;   
 
 window.onload = () => {
-
     editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
-
         mode: 'stex', theme: 'monokai', lineNumbers: true,
-
         lineWrapping: true,
-
         extraKeys: {
-
             'Ctrl-S':     () => saveToCloud(),
-
             'Ctrl-Enter': () => compile(),
-
             'Ctrl-F':     () => toggleSearchPanel(),
-
             'Ctrl-H':     () => toggleSearchPanel(),
-
             'Ctrl-Z':     () => editor.undo(),
-
             'Ctrl-Y':     () => editor.redo(),
-
         }
-
     });
-
     loadBlankTemplate('Computational linguistics!? What is that?', 'Muhammad S. Abdo');
-
     checkSession();
     initStatusBar();
-
     lucide.createIcons();
-
     document.addEventListener('click', e => { if (!e.target.closest('.dropdown-wrapper')) closeDropdown(); });
-
-    // Global keyboard shortcuts
     document.addEventListener('keydown', e => {
-
         if (e.key === 'Escape') closeSearchPanel();
-
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             e.preventDefault();
             toggleSearchPanel();
         }
-
     });
-
 };
 
+/* ─── UTF-8 Safe Base64 Helpers ────────────────────────────── */
+function utf8_to_b64(str) {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+}
 
+function b64_to_utf8(str) {
+    try {
+        return decodeURIComponent(Array.prototype.map.call(atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    } catch(e) { return atob(str); }
+}
 
 /* ─── Status Bar ───────────────────────────────────────────── */
-
 function initStatusBar() {
-
     updateStatusBar();
-
     editor.on('cursorActivity', updateStatusBar);
-
     editor.on('change', updateStatusBar);
-
 }
-
-
 
 function updateStatusBar() {
-
     const cursor = editor.getCursor();
-
     document.getElementById('statusLine').textContent = cursor.line + 1;
-
     document.getElementById('statusCol').textContent  = cursor.ch + 1;
-
-
-
     const sel = editor.getSelection();
-
     const selEl = document.getElementById('statusSel');
-
     if (sel.length > 0) {
-
         selEl.textContent = `${sel.length} selected`;
-
         selEl.style.display = 'inline';
-
     } else {
-
         selEl.style.display = 'none';
-
     }
-
-
-
-    const text  = editor.getValue();
-    // Strip LaTeX commands for word count so \section{Foo} counts as "Foo"
+    const text = editor.getValue();
     const plain = text.replace(/\\[a-zA-Z]+\*?(\{[^}]*\}|\[[^\]]*\])*/g, ' ').replace(/[{}[\]]/g, ' ');
     const words = plain.trim() === '' ? 0 : plain.trim().split(/\s+/).filter(w => w.length > 0).length;
-
     document.getElementById('statusWords').textContent = words.toLocaleString();
-
     document.getElementById('statusChars').textContent = text.length.toLocaleString();
-
 }
-
-
 
 /* ─── Search & Replace ─────────────────────────────────────── */
-
 function toggleSearchPanel() {
-
     const panel = document.getElementById('searchPanel');
-
     if (panel.classList.contains('open')) {
-
         closeSearchPanel();
-
     } else {
-
         panel.classList.add('open');
-
-        // Pre-fill with selected text if any
-
         const sel = editor.getSelection();
-
         if (sel && sel.length < 200) document.getElementById('searchInput').value = sel;
-
         document.getElementById('searchInput').focus();
-
         document.getElementById('searchInput').select();
-
         runSearch();
-
     }
-
 }
-
-
 
 function closeSearchPanel() {
-
     document.getElementById('searchPanel').classList.remove('open');
-
     clearSearchHighlights();
-
     searchMatches = []; searchIndex = -1;
-
     document.getElementById('matchInfo').textContent = '';
-
     document.getElementById('replaceInfo').textContent = '';
-
     editor.focus();
-
 }
-
-
 
 function getSearchQuery() {
-
-    const raw  = document.getElementById('searchInput').value;
-
+    const raw = document.getElementById('searchInput').value;
     const caseSensitive = document.getElementById('searchCase').checked;
-
-    const useRegex      = document.getElementById('searchRegex').checked;
-
+    const useRegex = document.getElementById('searchRegex').checked;
     if (!raw) return null;
-
     try {
-
         return useRegex
-
             ? new RegExp(raw, caseSensitive ? 'g' : 'gi')
-
             : new RegExp(raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseSensitive ? 'g' : 'gi');
-
     } catch { return null; }
-
 }
 
-
-
-// Collect all matches in the document
 function runSearch() {
-
     clearSearchHighlights();
-
     searchMatches = []; searchIndex = -1;
-
     const query = getSearchQuery();
-
     const input = document.getElementById('searchInput');
-
     const info  = document.getElementById('matchInfo');
-
-
-
     if (!query) { input.classList.remove('no-match'); info.textContent = ''; return; }
-
-
-
     const text = editor.getValue();
-
     let m;
-
-    // Reset regex lastIndex
     query.lastIndex = 0;
-
     while ((m = query.exec(text)) !== null) {
-
         const from = editor.posFromIndex(m.index);
-
         const to   = editor.posFromIndex(m.index + m[0].length);
-
         searchMatches.push({ from, to });
-
         editor.markText(from, to, { className: 'cm-searching' });
-
-        if (query.lastIndex === m.index) { query.lastIndex++; } // avoid infinite loop on zero-length match
-
+        if (query.lastIndex === m.index) { query.lastIndex++; }
     }
-
-
-
     if (searchMatches.length === 0) {
-
         input.classList.add('no-match');
-
         info.textContent = 'No matches';
-
     } else {
-
         input.classList.remove('no-match');
-
-        // Jump to nearest match from cursor
-
         const cur = editor.getCursor();
-
         searchIndex = searchMatches.findIndex(m => {
-
             if (m.from.line > cur.line) return true;
-
             if (m.from.line === cur.line && m.from.ch >= cur.ch) return true;
-
             return false;
-
         });
-
         if (searchIndex === -1) searchIndex = 0;
-
         jumpToMatch(searchIndex);
-
     }
-
 }
-
-
 
 function jumpToMatch(idx) {
-
     if (!searchMatches.length) return;
-
     searchIndex = (idx + searchMatches.length) % searchMatches.length;
-
     const m = searchMatches[searchIndex];
-
     editor.setSelection(m.from, m.to);
-
     editor.scrollIntoView({ from: m.from, to: m.to }, 100);
-
     document.getElementById('matchInfo').textContent = `${searchIndex + 1} / ${searchMatches.length}`;
-
 }
-
-
 
 function searchNext() { if (searchMatches.length) jumpToMatch(searchIndex + 1); }
-
 function searchPrev() { if (searchMatches.length) jumpToMatch(searchIndex - 1); }
-
-
-
-function clearSearchHighlights() {
-
-    editor.getAllMarks().forEach(m => m.clear());
-
-}
-
-
-
-function onSearchInput() {
-
-    // Debounce slightly so fast typing isn't sluggish on large docs
-
-    clearTimeout(onSearchInput._t);
-
-    onSearchInput._t = setTimeout(runSearch, 120);
-
-}
-
-
-
+function clearSearchHighlights() { editor.getAllMarks().forEach(m => m.clear()); }
+function onSearchInput() { clearTimeout(onSearchInput._t); onSearchInput._t = setTimeout(runSearch, 120); }
 function onSearchKey(e) {
-
     if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? searchPrev() : searchNext(); }
-
     if (e.key === 'Escape') { e.preventDefault(); closeSearchPanel(); }
-
 }
-
-function onReplaceKey(e) {
-
-    if (e.key === 'Enter') { e.preventDefault(); replaceOne(); }
-
-}
-
-
-
+function onReplaceKey(e) { if (e.key === 'Enter') { e.preventDefault(); replaceOne(); } }
 function replaceOne() {
-
     if (!searchMatches.length) return;
-
     const replacement = document.getElementById('replaceInput').value;
-
     const m = searchMatches[searchIndex];
-
     editor.replaceRange(replacement, m.from, m.to);
-
     document.getElementById('replaceInfo').textContent = 'Replaced 1';
-
     setTimeout(() => { document.getElementById('replaceInfo').textContent = ''; }, 1800);
-
-    runSearch(); // rebuild matches after change
-
+    runSearch();
 }
-
-
 
 function replaceAll() {
-
     const query = getSearchQuery();
-
     if (!query) return;
-
-    const text    = editor.getValue();
-
+    const text = editor.getValue();
     query.lastIndex = 0;
-
     const newText = text.replace(query, document.getElementById('replaceInput').value);
-
-    const count   = (text.match(query) || []).length;
-
+    const count = (text.match(query) || []).length;
     if (count === 0) { document.getElementById('replaceInfo').textContent = 'No matches'; return; }
-
     editor.setValue(newText);
-
     document.getElementById('replaceInfo').textContent = `Replaced ${count}`;
-
     setTimeout(() => { document.getElementById('replaceInfo').textContent = ''; }, 2200);
-
     clearSearchHighlights();
-
     searchMatches = []; searchIndex = -1;
-
     document.getElementById('matchInfo').textContent = '';
-
 }
-
-
 
 /* ─── Auth ─────────────────────────────────────────────────── */
-
 async function checkSession() {
-
     const { data: { session } } = await sb.auth.getSession();
-
     syncAuthUI(session?.user ?? null);
-
     sb.auth.onAuthStateChange((_, s) => syncAuthUI(s?.user ?? null));
-
 }
-
-
 
 function syncAuthUI(user) {
-
     currentUser = user;
-
-    const zone    = document.getElementById('authZone');
-
+    const zone = document.getElementById('authZone');
     const saveBtn = document.getElementById('saveCloudBtn');
-
     if (user) {
-
-        zone.innerHTML = `<span class="auth-email">${user.email}</span>
-
-            <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>`;
-
+        zone.innerHTML = `<span class="auth-email">${user.email}</span><button class="btn btn-ghost" onclick="signOut()">Sign Out</button>`;
         saveBtn.disabled = false;
-
         fetchProjects();
-
     } else {
-
         zone.innerHTML = '<button class="btn btn-primary" onclick="toggleModal(true)">Sign In</button>';
-
         saveBtn.disabled = true;
-
         document.getElementById('cloudDocList').innerHTML = '<div class="empty-hint">Sign in to sync projects to the cloud.</div>';
-
     }
-
     lucide.createIcons();
-
 }
-
-
 
 async function signOut() { await sb.auth.signOut(); }
 
-
-
 async function processAuth(mode) {
-
-    const email  = document.getElementById('authEmail').value.trim();
-
-    const pass   = document.getElementById('authPass').value;
-
+    const email = document.getElementById('authEmail').value.trim();
+    const pass = document.getElementById('authPass').value;
     const errDiv = document.getElementById('authError');
-
     errDiv.textContent = '';
-
     try {
-
         const res = mode === 'login'
-
             ? await sb.auth.signInWithPassword({ email, password: pass })
-
             : await sb.auth.signUp({ email, password: pass });
-
         if (res.error) throw res.error;
-
         toggleModal(false);
-
     } catch (err) { errDiv.textContent = err.message; }
-
 }
-
-
 
 function toggleModal(show) { document.getElementById('authModal').className = show ? 'show' : ''; }
 
-
-
 /* ─── Projects ─────────────────────────────────────────────── */
-
 async function fetchProjects() {
-
     const { data, error } = await sb.from('documents').select('id, title').order('created_at', { ascending: false });
-
     const list = document.getElementById('cloudDocList');
-
     if (error) { list.innerHTML = `<div style="color:var(--red);font-size:12px;padding:8px">${error.message}</div>`; return; }
-
     if (!data.length) { list.innerHTML = '<div class="empty-hint">No projects yet. Create one to get started.</div>'; return; }
-
     list.innerHTML = data.map(d => `
-
         <div class="project-item" onclick="loadProject('${d.id}')" data-id="${d.id}">
-
             <i data-lucide="folder" style="width:13px;height:13px;flex-shrink:0;color:var(--amber);opacity:0.7"></i>
-
             <span class="project-item-name">${d.title}</span>
-
             <button class="project-item-delete" onclick="deleteProject(event,'${d.id}','${d.title.replace(/'/g,"\\'")}')">
-
                 <i data-lucide="trash-2" style="width:12px;height:12px"></i>
-
             </button>
-
         </div>`).join('');
-
     lucide.createIcons();
-
 }
-
-
 
 async function loadProject(id) {
-
     const { data, error } = await sb.from('documents').select('*').eq('id', id).single();
-
     if (error || !data) { toast('Failed to load project', true); return; }
-
     currentDocId = data.id;
-
     projectFiles = data.assets || [];
-
     document.getElementById('docTitleInput').value = data.title;
-
     const mainTex = projectFiles.find(f => f.type === 'tex' && f.main) || projectFiles.find(f => f.type === 'tex');
-
-    if (mainTex) { activeTexName = mainTex.name; editor.setValue(atob(mainTex.content)); }
-
+    if (mainTex) { activeTexName = mainTex.name; editor.setValue(b64_to_utf8(mainTex.content)); }
     else         { activeTexName = null; editor.setValue(data.content || ''); }
-
     clearPdfPreview();
-
     renderFilePanel();
-
     highlightActiveProject(id);
-
 }
-
-
 
 async function saveToCloud() {
-
     if (!currentUser) return;
-
     syncEditorToFile();
-
-    const title   = document.getElementById('docTitleInput').value.trim() || 'Untitled Project';
-
+    const title = document.getElementById('docTitleInput').value.trim() || 'Untitled Project';
     const saveBtn = document.getElementById('saveCloudBtn');
-
     saveBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px;height:14px"></i> Saving…';
-
     lucide.createIcons();
-
     const payload = { user_id: currentUser.id, title, content: editor.getValue(), assets: projectFiles };
-
     let res;
-
     if (currentDocId) { res = await sb.from('documents').update(payload).eq('id', currentDocId); }
-
     else { res = await sb.from('documents').insert([payload]).select(); if (res.data?.[0]) currentDocId = res.data[0].id; }
-
     if (res.error) { toast('Save failed: ' + res.error.message, true); }
-
     else           { toast('Saved to cloud ✓'); fetchProjects(); highlightActiveProject(currentDocId); }
-
     saveBtn.innerHTML = '<i data-lucide="cloud" style="width:14px;height:14px"></i> Save';
-
     lucide.createIcons();
-
 }
-
-
 
 function newBlankProject() {
-
     currentDocId = null; activeTexName = 'main.tex'; projectFiles = [];
-
     document.getElementById('docTitleInput').value = 'Untitled Project';
-
     loadBlankTemplate('New Document', 'Your Name');
-
     clearPdfPreview();
-
     renderFilePanel();
-
     highlightActiveProject(null);
-
 }
-
-
 
 function loadBlankTemplate(title, author) {
-
-    const src =
-
-`\\documentclass[12pt]{article}
-
-\\usepackage[utf8]{inputenc}
-
-
-
-\\title{${title}}
-
-\\author{${author}}
-
-\\date{\\today}
-
-
-
-\\begin{document}
-
-\\maketitle
-
-
-
-\\section{Introduction}
-
-Well, the story goes back to the middle of the twentieth century, when computers were still new and scholars began to wonder whether machines could be made to process human language.
-
-
-
-\\end{document}`;
-
+    const src = `\\documentclass[12pt]{article}\n\\usepackage[utf8]{inputenc}\n\n\\title{${title}}\n\\author{${author}}\n\\date{\\today}\n\n\\begin{document}\n\\maketitle\n\n\\section{Introduction}\nWell, the story goes back...\n\n\\end{document}`;
     editor.setValue(src);
-
     upsertTexFile('main.tex', src, true);
-
 }
-
-
-
-/* ─── Import ───────────────────────────────────────────────── */
 
 function triggerImport(type) {
-
     closeDropdown();
-
     document.getElementById({ tex: 'importTexInput', folder: 'importFolderInput', zip: 'importZipInput' }[type]).click();
-
 }
-
-
 
 function handleImportTex(input) {
-
     const file = input.files[0]; if (!file) return;
-
     const reader = new FileReader();
-
     reader.onload = e => {
-
         currentDocId = null; activeTexName = file.name; projectFiles = [];
-
         document.getElementById('docTitleInput').value = file.name.replace(/\.tex$/i, '');
-
         editor.setValue(e.target.result);
-
         upsertTexFile(file.name, e.target.result, true);
-
         clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
-
         toast(`Imported ${file.name}`);
-
     };
-
     reader.readAsText(file); input.value = '';
-
 }
-
 
 async function handleImportFolder(input) {
     const files = Array.from(input.files);
     if (!files.length) return;
-    
     showUploadOverlay('Importing folder…', files.length);
-    currentDocId = null; 
-    projectFiles = [];
-
-    // Correctly get the root folder name from the first file path
+    currentDocId = null; projectFiles = [];
     const folderName = files[0].webkitRelativePath.split('/')[0];
     document.getElementById('docTitleInput').value = folderName;
-
     let mainTex = null, done = 0;
-
     for (const f of files) {
-        // FIX: Await the base64 conversion inside the loop for each file
         const base64Data = await fileToBase64(f);
         const type = classifyFile(f.name);
-        
-        // Normalize path (Windows compatibility) and identify main.tex
         const cleanPath = f.webkitRelativePath.replace(/\\/g, '/');
         const isMain = !mainTex && f.name.toLowerCase() === 'main.tex';
-        
         if (isMain) mainTex = cleanPath;
-
-        projectFiles.push({ 
-            name: cleanPath, 
-            content: base64Data, 
-            type: type, 
-            main: isMain 
-        });
-
+        projectFiles.push({ name: cleanPath, content: base64Data, type: type, main: isMain });
         updateProgress(++done, files.length);
     }
-
     if (mainTex) {
         activeTexName = mainTex;
         const entry = projectFiles.find(f => f.name === mainTex);
-        // Use your safe UTF-8 decode helper
         if (entry) editor.setValue(b64_to_utf8(entry.content));
     }
-
-    hideUploadOverlay();
-    clearPdfPreview();
-    renderFilePanel();
-    highlightActiveProject(null);
-    toast(`Imported ${files.length} files from "${folderName}"`);
+    hideUploadOverlay(); clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
+    toast(`Imported ${files.length} files`);
     input.value = '';
 }
-
 
 async function handleImportZip(input) {
-
     const file = input.files[0]; if (!file) return;
-
     showUploadOverlay('Extracting ZIP…', 100);
-
     try {
-
-        const zip     = await JSZip.loadAsync(file);
-
+        const zip = await JSZip.loadAsync(file);
         const entries = Object.values(zip.files).filter(f => !f.dir);
-
         currentDocId = null; projectFiles = [];
-
         document.getElementById('docTitleInput').value = file.name.replace(/\.zip$/i, '');
-
         let mainTex = null, done = 0;
-
         for (const entry of entries) {
-
             const isBin = isBinaryPath(entry.name);
-
-            const data  = isBin ? await entry.async('base64') : btoa(unescape(encodeURIComponent(await entry.async('string'))));
-
-            const type  = classifyFile(entry.name);
-
-            const isMain = !mainTex && type === 'tex';
-
+            const data = isBin ? await entry.async('base64') : utf8_to_b64(await entry.async('string'));
+            const type = classifyFile(entry.name);
+            const isMain = !mainTex && entry.name.toLowerCase() === 'main.tex';
             if (isMain) mainTex = entry.name;
-
             projectFiles.push({ name: entry.name, content: data, type, main: isMain });
-
             updateProgress(++done, entries.length);
-
         }
-
-        if (mainTex) { activeTexName = mainTex; editor.setValue(atob(projectFiles.find(f => f.name === mainTex).content)); }
-
+        if (mainTex) { activeTexName = mainTex; editor.setValue(b64_to_utf8(projectFiles.find(f => f.name === mainTex).content)); }
         hideUploadOverlay(); clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
-
-        toast(`Extracted ${entries.length} file(s) from "${file.name}"`);
-
-    } catch (err) { hideUploadOverlay(); toast('ZIP error: ' + err.message, true); }
-
+        toast(`Extracted ${entries.length} files`);
+    } catch (err) { hideUploadOverlay(); toast('ZIP error', true); }
     input.value = '';
-
 }
-
-
 
 function triggerAddFiles() { document.getElementById('addFilesInput').click(); }
 
-
-
 async function handleAddFiles(input) {
-
     for (const file of Array.from(input.files)) {
-
         const base64 = await fileToBase64(file);
-
-        const type   = classifyFile(file.name);
-
-        const idx    = projectFiles.findIndex(f => f.name === file.name);
-
-        const entry  = { name: file.name, content: base64, type, main: false };
-
+        const type = classifyFile(file.name);
+        const idx = projectFiles.findIndex(f => f.name === file.name);
+        const entry = { name: file.name, content: base64, type, main: false };
         if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
-
         if (type === 'tex') openTexInEditor(file.name);
-
     }
-
-    renderFilePanel(); toast(`Added ${input.files.length} file(s)`); input.value = '';
-
+    renderFilePanel(); toast(`Added ${input.files.length} files`); input.value = '';
 }
-
-
-
-/* ─── File panel ───────────────────────────────────────────── */
 
 function renderFilePanel() {
-
-    const body  = document.getElementById('filePanelBody');
-
-    const tex   = projectFiles.filter(f => f.type === 'tex');
-
-    const bib   = projectFiles.filter(f => f.type === 'bib');
-
-    const img   = projectFiles.filter(f => f.type === 'img');
-
+    const body = document.getElementById('filePanelBody');
+    const tex = projectFiles.filter(f => f.type === 'tex');
+    const bib = projectFiles.filter(f => f.type === 'bib');
+    const img = projectFiles.filter(f => f.type === 'img');
     const other = projectFiles.filter(f => f.type === 'other');
-
     if (!projectFiles.length) { body.innerHTML = '<div class="empty-hint">No files yet.</div>'; return; }
-
     let html = '';
-
-    if (tex.length)   html += fileGroup('TeX Sources',  tex,   'file-text', 'icon-tex');
-
-    if (bib.length)   html += fileGroup('Bibliography', bib,   'book',      'icon-bib');
-
-    if (img.length)   html += fileGroup('Images',       img,   'image',     'icon-img');
-
-    if (other.length) html += fileGroup('Other',        other, 'paperclip', 'icon-other');
-
+    if (tex.length) html += fileGroup('TeX Sources', tex, 'file-text', 'icon-tex');
+    if (bib.length) html += fileGroup('Bibliography', bib, 'book', 'icon-bib');
+    if (img.length) html += fileGroup('Images', img, 'image', 'icon-img');
+    if (other.length) html += fileGroup('Other', other, 'paperclip', 'icon-other');
     body.innerHTML = html;
-
     lucide.createIcons();
-
 }
-
-
 
 function fileGroup(label, files, icon, iconClass) {
-
-    return `<div class="file-group">
-
-        <div class="file-group-label"><i data-lucide="${icon}" style="width:10px;height:10px"></i>${label}</div>
-
-        ${files.map(f => `
-
-        <div class="file-entry ${f.name === activeTexName ? 'active-file' : ''}" onclick="openFileEntry('${f.name}','${f.type}')" title="${f.name}" style="cursor:pointer">
-
+    return `<div class="file-group"><div class="file-group-label"><i data-lucide="${icon}" style="width:10px;height:10px"></i>${label}</div>
+        ${files.map(f => `<div class="file-entry ${f.name === activeTexName ? 'active-file' : ''}" onclick="openFileEntry('${f.name}','${f.type}')">
             <i data-lucide="${icon}" style="width:12px;height:12px;flex-shrink:0" class="${iconClass}"></i>
-
-            <span class="file-entry-name">${f.name}${f.main ? ' <span style="font-size:9px;color:var(--amber);font-weight:700;letter-spacing:0.5px">[main]</span>' : ''}</span>
-
-            <button class="file-entry-remove" onclick="removeProjectFile(event,'${f.name}')" title="Remove">
-
-                <i data-lucide="x" style="width:11px;height:11px"></i>
-
-            </button>
-
-        </div>`).join('')}
-
-    </div>`;
-
+            <span class="file-entry-name">${f.name}${f.main ? ' <span style="font-size:9px;color:var(--amber);font-weight:700;">[main]</span>' : ''}</span>
+            <button class="file-entry-remove" onclick="removeProjectFile(event,'${f.name}')"><i data-lucide="x" style="width:11px;height:11px"></i></button>
+        </div>`).join('')}</div>`;
 }
-
-
 
 function openFileEntry(name, type) {
-
     if (type === 'tex') { openTexInEditor(name); return; }
-
     const entry = projectFiles.find(f => f.name === name);
-
     if (!entry) return;
-
-    if (type === 'bib') { openBibInEditor(name, entry); return; }
-
-    if (type === 'img') { openImagePreview(name, entry); return; }
-
-    // 'other' — open as text in editor
-
-    openBibInEditor(name, entry);
-
-}
-
-
-
-/* --- UTF-8 Safe Base64 Helpers --- */
-function utf8_to_b64(str) {
-    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-        return String.fromCharCode('0x' + p1);
-    }));
-}
-
-function b64_to_utf8(str) {
-    return decodeURIComponent(Array.prototype.map.call(atob(str), function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-}
-
-/* --- Updated Functions --- */
-
-function openBibInEditor(name, entry) {
-    syncEditorToFile();
-    activeTexName = name;
-    editor.setOption('readOnly', false);
-    // Use safe decoder
-    const text = b64_to_utf8(entry.content);
-    editor.setValue(text);
-    renderFilePanel();
+    if (type === 'bib' || type === 'other') {
+        syncEditorToFile(); activeTexName = name; editor.setOption('readOnly', false);
+        editor.setValue(b64_to_utf8(entry.content)); renderFilePanel();
+    } else if (type === 'img') { openImagePreview(name, entry); }
 }
 
 function openTexInEditor(name) {
-    editor.setOption('readOnly', false);
-    syncEditorToFile();
+    editor.setOption('readOnly', false); syncEditorToFile();
     const entry = projectFiles.find(f => f.name === name);
     if (!entry) return;
-    activeTexName = name;
-    // Use safe decoder
-    editor.setValue(b64_to_utf8(entry.content));
-    renderFilePanel();
+    activeTexName = name; editor.setValue(b64_to_utf8(entry.content)); renderFilePanel();
 }
-
-// CRITICAL: Ensure these use the safe UTF-8 helpers
-function syncEditorToFile() {
-    if (!activeTexName) return;
-    const existing = projectFiles.find(f => f.name === activeTexName);
-    const type = existing ? existing.type : 'tex';
-    const isMain = existing ? !!existing.main : true;
-    
-    // SAFE ENCODING FOR ARABIC/FRENCH
-    const b64 = utf8_to_b64(editor.getValue());
-    
-    const idx = projectFiles.findIndex(f => f.name === activeTexName);
-    const entry = { name: activeTexName, content: b64, type, main: isMain };
-    if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
-}
-
-function upsertTexFile(name, plainText, isMain) {
-    const b64 = utf8_to_b64(plainText);
-    const idx = projectFiles.findIndex(f => f.name === name);
-    const entry = { name, content: b64, type: 'tex', main: !!isMain };
-    if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
-    activeTexName = name;
-}
-
-// Also update loadProject so it uses the safe decoder:
-async function loadProject(id) {
-    const { data, error } = await sb.from('documents').select('*').eq('id', id).single();
-    if (error || !data) { toast('Failed to load project', true); return; }
-    currentDocId = data.id;
-    projectFiles = data.assets || [];
-    document.getElementById('docTitleInput').value = data.title;
-    const mainTex = projectFiles.find(f => f.type === 'tex' && f.main) || projectFiles.find(f => f.type === 'tex');
-    
-    if (mainTex) { 
-        activeTexName = mainTex.name; 
-        editor.setValue(b64_to_utf8(mainTex.content)); // Safe Decode
-    } else { 
-        activeTexName = null; 
-        editor.setValue(data.content || ''); 
-    }
-    clearPdfPreview();
-    renderFilePanel();
-    highlightActiveProject(id);
-}
-
-
 
 function openImagePreview(name, entry) {
-
-    // Detect mime type from extension
     const ext = name.split('.').pop().toLowerCase();
-
-    const mime = ext === 'svg' ? 'image/svg+xml'
-
-               : ext === 'gif' ? 'image/gif'
-
-               : ext === 'png' ? 'image/png'
-
-               : 'image/jpeg';
-
-    const url = `data:${mime};base64,${entry.content}`;
-
-    // Open in a small overlay
-
-    const existing = document.getElementById('imgPreviewOverlay');
-
-    if (existing) existing.remove();
-
+    const mime = ext === 'svg' ? 'image/svg+xml' : ext === 'gif' ? 'image/gif' : ext === 'png' ? 'image/png' : 'image/jpeg';
+    const existing = document.getElementById('imgPreviewOverlay'); if (existing) existing.remove();
     const overlay = document.createElement('div');
-
     overlay.id = 'imgPreviewOverlay';
-
     overlay.style.cssText = `position:fixed;inset:0;background:rgba(8,10,16,0.85);backdrop-filter:blur(4px);z-index:1500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px`;
-
-    overlay.innerHTML = `
-
-        <div style="background:var(--bg-elevated);border:1px solid var(--border-medium);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow-lg);max-width:90vw;max-height:85vh;display:flex;flex-direction:column;gap:12px">
-
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:24px">
-
-                <span style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">${name}</span>
-
-                <button onclick="document.getElementById('imgPreviewOverlay').remove()" style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;padding:4px;line-height:0">
-
-                    <i data-lucide="x" style="width:16px;height:16px"></i>
-
-                </button>
-
-            </div>
-
-            <img src="${url}" style="max-width:80vw;max-height:72vh;object-fit:contain;border-radius:var(--radius-md);display:block">
-
-        </div>`;
-
+    overlay.innerHTML = `<div style="background:var(--bg-elevated);border:1px solid var(--border-medium);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow-lg);max-width:90vw;max-height:85vh;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:24px"><span style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">${name}</span>
+            <button onclick="document.getElementById('imgPreviewOverlay').remove()" style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;padding:4px;line-height:0"><i data-lucide="x" style="width:16px;height:16px"></i></button></div>
+            <img src="data:${mime};base64,${entry.content}" style="max-width:80vw;max-height:72vh;object-fit:contain;border-radius:var(--radius-md);display:block"></div>`;
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-
-    document.body.appendChild(overlay);
-
-    lucide.createIcons();
-
+    document.body.appendChild(overlay); lucide.createIcons();
 }
-
-
 
 function removeProjectFile(event, name) {
-
     event.stopPropagation();
-
     projectFiles.splice(projectFiles.findIndex(f => f.name === name), 1);
-
     if (name === activeTexName) { activeTexName = null; editor.setValue(''); }
-
     renderFilePanel(); toast(`Removed ${name}`);
-
 }
-
-
 
 async function deleteProject(event, id, title) {
-
     event.stopPropagation();
-
-    if (!await confirm(`Delete "${title}"?`, 'This project will be permanently removed from the cloud.')) return;
-
+    if (!await confirm(`Delete "${title}"?`, 'This will be permanently removed.')) return;
     const { error } = await sb.from('documents').delete().eq('id', id);
-
-    if (error) { toast('Delete failed: ' + error.message, true); return; }
-
+    if (error) { toast('Delete failed', true); return; }
     if (currentDocId === id) newBlankProject();
-
     fetchProjects(); toast(`Deleted "${title}"`);
-
 }
-
-
-
-/* ─── Compile & PDF ────────────────────────────────────────── */
 
 async function compile() {
-
     syncEditorToFile();
-
     const btn = document.getElementById('compileBtn');
-
     btn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px;height:14px"></i> Compiling…';
-
-    btn.disabled = true;
-
-    btn.classList.add('btn-compiling');
-
-    lucide.createIcons();
-
-
-
+    btn.disabled = true; lucide.createIcons();
     try {
-
         const res = await fetch(COMPILE_ENDPOINT, {
-
             method: 'POST',
-
             headers: { 'Content-Type': 'application/json' },
-
-            body: JSON.stringify({
-
-                latex: editor.getValue(),
-
-                files: projectFiles
-
-                    .filter(f => !(f.type === 'tex' && f.name === activeTexName))
-
-                    .map(f => ({ path: f.name, contentBase64: f.content }))
-
-            })
-
+            body: JSON.stringify({ latex: editor.getValue(), files: projectFiles.filter(f => !(f.type === 'tex' && f.name === activeTexName)).map(f => ({ path: f.name, contentBase64: f.content })) })
         });
-
-
-
         const data = await res.json();
-
-
-
-        if (data.pdf) {
-
-            renderPdf(data.pdf);
-
-        } else {
-
-            clearPdfPreview();
-
-            document.getElementById('previewPlaceholder').innerHTML =
-
-                `<div style="padding:24px;color:var(--red);width:100%;overflow:auto">
-
-                    <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;color:var(--red)">Compilation Error</div>
-
-                    <pre style="white-space:pre-wrap;font-size:11.5px;font-family:var(--font-mono);color:#c47;line-height:1.6;background:var(--red-dim);padding:14px;border-radius:6px;border:1px solid rgba(208,69,69,0.2)">${data.log || data.error}</pre>
-
-                </div>`;
-
-            document.getElementById('previewPlaceholder').style.display = 'block';
-
-        }
-
-    } catch (err) {
-
-        clearPdfPreview();
-
-        document.getElementById('previewPlaceholder').innerHTML =
-
-            `<div style="padding:24px;color:var(--red);width:100%">
-
-                <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">Network Error</div>
-
-                <p style="font-size:13px;color:var(--text-muted)">${err.message}</p>
-
-            </div>`;
-
-        document.getElementById('previewPlaceholder').style.display = 'block';
-
-    }
-
-
-
+        if (data.pdf) { renderPdf(data.pdf); }
+        else { clearPdfPreview(); document.getElementById('previewPlaceholder').innerHTML = `<div style="padding:24px;color:var(--red);width:100%"><div style="font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:10px">Error</div><pre style="white-space:pre-wrap;font-size:11.5px;font-family:var(--font-mono);background:var(--red-dim);padding:14px;border-radius:6px;">${data.log || data.error}</pre></div>`; document.getElementById('previewPlaceholder').style.display = 'block'; }
+    } catch (err) { clearPdfPreview(); toast('Network error', true); }
     btn.innerHTML = '<i data-lucide="play" style="width:14px;height:14px"></i> Compile';
-
-    btn.disabled = false;
-
-    btn.classList.remove('btn-compiling');
-
-    lucide.createIcons();
-
+    btn.disabled = false; lucide.createIcons();
 }
-
-
 
 function renderPdf(base64) {
-
     if (currentPdfBlobUrl) { URL.revokeObjectURL(currentPdfBlobUrl); currentPdfBlobUrl = null; }
-
     const binary = atob(base64);
-
-    const bytes  = new Uint8Array(binary.length);
-
+    const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-
-    currentPdfBlobUrl = URL.createObjectURL(blob);
-
-
-
+    currentPdfBlobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
     document.getElementById('previewPlaceholder').style.display = 'none';
-
-    document.getElementById('previewToolbar').style.display     = 'flex';
-
-    document.getElementById('pdfLoadingOverlay').classList.add('show');
-
-
-
+    document.getElementById('previewToolbar').style.display = 'flex';
     const frame = document.getElementById('pdfFrame');
-
-    frame.style.display = 'block';
-
-    frame.onload = () => {
-
-        document.getElementById('pdfLoadingOverlay').classList.remove('show');
-
-        document.getElementById('previewPageInfo').textContent = 'PDF ready';
-
-        document.getElementById('downloadPdfBtn').disabled = false;
-
-    };
-
-    frame.src = currentPdfBlobUrl;
-
+    frame.style.display = 'block'; frame.onload = () => document.getElementById('pdfLoadingOverlay').classList.remove('show');
+    frame.src = currentPdfBlobUrl; document.getElementById('downloadPdfBtn').disabled = false;
 }
 
-
-
-function reloadPdfFrame() {
-
-    if (!currentPdfBlobUrl) return;
-
-    const frame = document.getElementById('pdfFrame');
-
-    document.getElementById('pdfLoadingOverlay').classList.add('show');
-
-    frame.onload = () => document.getElementById('pdfLoadingOverlay').classList.remove('show');
-
-    frame.src = currentPdfBlobUrl;
-
-}
-
-
+function reloadPdfFrame() { if (currentPdfBlobUrl) document.getElementById('pdfFrame').src = currentPdfBlobUrl; }
 
 function clearPdfPreview() {
-
     if (currentPdfBlobUrl) { URL.revokeObjectURL(currentPdfBlobUrl); currentPdfBlobUrl = null; }
-
-    const frame = document.getElementById('pdfFrame');
-
-    frame.src = 'about:blank';
-
-    frame.style.display = 'none';
-
-    document.getElementById('pdfLoadingOverlay').classList.remove('show');
-
+    const frame = document.getElementById('pdfFrame'); frame.src = 'about:blank'; frame.style.display = 'none';
     document.getElementById('previewToolbar').style.display = 'none';
-
     document.getElementById('downloadPdfBtn').disabled = true;
-
-    const ph = document.getElementById('previewPlaceholder');
-
-    ph.innerHTML = `
-
-        <div class="preview-placeholder-icon">
-
-            <i data-lucide="file-text" style="width:26px;height:26px;color:#444;stroke-width:1.5"></i>
-
-        </div>
-
-        <p>Compile to preview</p>
-
-        <small>Ctrl+S to save &nbsp;·&nbsp; Ctrl+Enter to compile</small>`;
-
-    ph.style.display = 'flex';
-
-    lucide.createIcons();
-
+    document.getElementById('previewPlaceholder').style.display = 'flex';
 }
-
-
-
-/* ─── Download ─────────────────────────────────────────────── */
 
 function downloadTeX() {
-    const name = (document.getElementById('docTitleInput').value || 'document') + '.tex';
-    const content = editor.getValue();
-    // Explicitly enforce UTF-8 for external editors
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([editor.getValue()], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    const a = document.createElement('a'); a.href = url; a.download = (document.getElementById('docTitleInput').value || 'document') + '.tex';
+    a.click(); setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
-
-
-function downloadPDF() {
-
-    if (!currentPdfBlobUrl) { toast('Compile first to generate a PDF', true); return; }
-
-    triggerDownload(currentPdfBlobUrl, (document.getElementById('docTitleInput').value || 'document') + '.pdf');
-
-}
+function downloadPDF() { if (currentPdfBlobUrl) { const a = document.createElement('a'); a.href = currentPdfBlobUrl; a.download = (document.getElementById('docTitleInput').value || 'document') + '.pdf'; a.click(); } }
 
 async function downloadProjectZip() {
-    const zip = new JSZip();
-    const projectTitle = document.getElementById('docTitleInput').value.trim() || 'RogueTeX_Project';
-    
-    // 1. Force sync the current editor text into the projectFiles array
-    syncEditorToFile();
-
-    if (projectFiles.length === 0) {
-        toast("No files to download", true);
-        return;
-    }
-
+    const zip = new JSZip(); syncEditorToFile();
+    if (projectFiles.length === 0) { toast("No files", true); return; }
     const zipBtn = document.getElementById('zipDownloadBtn');
     const originalContent = zipBtn.innerHTML;
-    zipBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px;height:14px"></i>...';
-    lucide.createIcons();
-
+    zipBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px;height:14px"></i>...'; lucide.createIcons();
     try {
-        // 2. Loop through assets and add to ZIP as raw binary
         projectFiles.forEach(file => {
-            // Standard Base64 to Binary conversion
-            const binaryString = window.atob(file.content);
+            const binaryString = atob(file.content);
             const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            // JSZip is smart enough to handle Uint8Array correctly
+            for (let i = 0; i < binaryString.length; i++) { bytes[i] = binaryString.charCodeAt(i); }
             zip.file(file.name, bytes, { binary: true });
         });
-
-        // 3. Generate the ZIP blob
-        const content = await zip.generateAsync({ 
-            type: "blob",
-            compression: "DEFLATE",
-            compressionOptions: { level: 6 } 
-        });
-
-        // 4. Trigger the download
-        const url = URL.createObjectURL(content);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${projectTitle}.zip`;
-        document.body.appendChild(a); // Append for better Firefox support
-        a.click();
-        document.body.removeChild(a);
-        
-        // Cleanup and Notify
-        setTimeout(() => URL.revokeObjectURL(url), 100);
-        toast("Project archived ✓");
-
-    } catch (err) {
-        console.error("ZIP Error:", err);
-        toast("ZIP export failed", true);
-    } finally {
-        zipBtn.innerHTML = originalContent;
-        lucide.createIcons();
-    }
+        const content = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(content); a.download = `${document.getElementById('docTitleInput').value || 'Project'}.zip`; a.click();
+        toast("Archived ✓");
+    } catch (err) { toast("ZIP failed", true); }
+    finally { zipBtn.innerHTML = originalContent; lucide.createIcons(); }
 }
-
-function triggerDownload(url, filename) {
-
-    const a = document.createElement('a');
-
-    a.href = url; a.download = filename; a.click();
-
-}
-
-
-
-/* ─── Helpers ──────────────────────────────────────────────── */
 
 function classifyFile(name) {
-
     const ext = name.split('.').pop().toLowerCase();
-
     if (ext === 'tex') return 'tex';
-
     if (ext === 'bib') return 'bib';
-
-    if (['png','jpg','jpeg','gif','svg','eps'].includes(ext)) return 'img';
-
+    if (['png','jpg','jpeg','gif','svg'].includes(ext)) return 'img';
     return 'other';
-
 }
 
-function isBinaryPath(name) { return ['png','jpg','jpeg','gif','pdf','eps','zip'].includes(name.split('.').pop().toLowerCase()); }
+function isBinaryPath(name) { return ['png','jpg','jpeg','gif','pdf','zip'].includes(name.split('.').pop().toLowerCase()); }
 
-function fileToBase64(file) {
-
-    return new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
-
-}
+function fileToBase64(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); }); }
 
 function syncEditorToFile() {
     if (!activeTexName) return;
     const existing = projectFiles.find(f => f.name === activeTexName);
-    const type = existing ? existing.type : 'tex';
-    const isMain = existing ? !!existing.main : true;
-    
-    // Use the safe helper here to fix Arabic/French distortion
     const b64 = utf8_to_b64(editor.getValue());
-    
     const idx = projectFiles.findIndex(f => f.name === activeTexName);
-    const entry = { name: activeTexName, content: b64, type, main: isMain };
+    const entry = { name: activeTexName, content: b64, type: existing?.type || 'tex', main: !!existing?.main };
     if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
 }
 
 function upsertTexFile(name, plainText, isMain) {
-    // Use the safe helper here too
     const b64 = utf8_to_b64(plainText);
     const idx = projectFiles.findIndex(f => f.name === name);
     const entry = { name, content: b64, type: 'tex', main: !!isMain };
@@ -3816,57 +2975,30 @@ function upsertTexFile(name, plainText, isMain) {
 }
 
 function highlightActiveProject(id) { document.querySelectorAll('.project-item').forEach(el => el.classList.toggle('active', el.dataset.id === id)); }
-
 function toggleDropdown() { document.getElementById('importDropdown').classList.toggle('open'); }
-
 function closeDropdown()  { document.getElementById('importDropdown').classList.remove('open'); }
 
-
-
 let toastTimer;
-
 function toast(msg, isError = false) {
-
-    const el = document.getElementById('toast');
-
-    el.textContent = msg;
-
-    el.className = isError ? 'show error-toast' : 'show success-toast';
-
-    clearTimeout(toastTimer);
-
-    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
-
+    const el = document.getElementById('toast'); el.textContent = msg; el.className = isError ? 'show error-toast' : 'show success-toast';
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
 }
-
-
 
 let confirmResolve;
-
 function confirm(title, msg) {
-
     document.getElementById('confirmTitle').textContent = title;
-
-    document.getElementById('confirmMsg').textContent   = msg;
-
+    document.getElementById('confirmMsg').textContent = msg;
     document.getElementById('confirmModal').classList.add('show');
-
     return new Promise(res => confirmResolve = res);
-
 }
-
 function resolveConfirm(val) { document.getElementById('confirmModal').classList.remove('show'); if (confirmResolve) { confirmResolve(val); confirmResolve = null; } }
 
-
-
 function showUploadOverlay(title, total) { document.getElementById('uploadTitle').textContent = title; document.getElementById('uploadMsg').textContent = `0 / ${total}`; document.getElementById('progressFill').style.width = '0%'; document.getElementById('uploadOverlay').classList.add('show'); }
-
 function updateProgress(done, total) { document.getElementById('uploadMsg').textContent = `${done} / ${total} files`; document.getElementById('progressFill').style.width = Math.round(done / total * 100) + '%'; }
-
 function hideUploadOverlay() { document.getElementById('uploadOverlay').classList.remove('show'); }
-
 </script>
-
+</body>
+</html>
 </body>
 
 </html>
