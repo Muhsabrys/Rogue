@@ -3306,41 +3306,82 @@ function openFileEntry(name, type) {
 
 
 
-function openBibInEditor(name, entry) {
-
-    syncEditorToFile();
-
-    activeTexName = name;
-
-    editor.setOption('readOnly', false);
-
-    const text = decodeURIComponent(escape(atob(entry.content)));
-
-    editor.setValue(text);
-
-    renderFilePanel();
-
+/* --- UTF-8 Safe Base64 Helpers --- */
+function utf8_to_b64(str) {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+        return String.fromCharCode('0x' + p1);
+    }));
 }
 
+function b64_to_utf8(str) {
+    return decodeURIComponent(Array.prototype.map.call(atob(str), function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+}
 
+/* --- Updated Functions --- */
 
-// Re-enable editor readOnly when switching back to a tex file
-function openTexInEditor(name) {
-
-    editor.setOption('readOnly', false);
-
+function openBibInEditor(name, entry) {
     syncEditorToFile();
-
-    const entry = projectFiles.find(f => f.name === name);
-
-    if (!entry) return;
-
     activeTexName = name;
-
-    editor.setValue(atob(entry.content));
-
+    editor.setOption('readOnly', false);
+    // Use safe decoder
+    const text = b64_to_utf8(entry.content);
+    editor.setValue(text);
     renderFilePanel();
+}
 
+function openTexInEditor(name) {
+    editor.setOption('readOnly', false);
+    syncEditorToFile();
+    const entry = projectFiles.find(f => f.name === name);
+    if (!entry) return;
+    activeTexName = name;
+    // Use safe decoder
+    editor.setValue(b64_to_utf8(entry.content));
+    renderFilePanel();
+}
+
+function syncEditorToFile() {
+    if (!activeTexName) return;
+    const existing = projectFiles.find(f => f.name === activeTexName);
+    const type = existing ? existing.type : 'tex';
+    const isMain = existing ? !!existing.main : true;
+    // Use safe encoder
+    const b64 = utf8_to_b64(editor.getValue());
+    const idx = projectFiles.findIndex(f => f.name === activeTexName);
+    const entry = { name: activeTexName, content: b64, type, main: isMain };
+    if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
+}
+
+function upsertTexFile(name, plainText, isMain) {
+    // Use safe encoder
+    const b64 = utf8_to_b64(plainText);
+    const idx = projectFiles.findIndex(f => f.name === name);
+    const entry = { name, content: b64, type: 'tex', main: !!isMain };
+    if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
+    activeTexName = name;
+}
+
+// Also update loadProject so it uses the safe decoder:
+async function loadProject(id) {
+    const { data, error } = await sb.from('documents').select('*').eq('id', id).single();
+    if (error || !data) { toast('Failed to load project', true); return; }
+    currentDocId = data.id;
+    projectFiles = data.assets || [];
+    document.getElementById('docTitleInput').value = data.title;
+    const mainTex = projectFiles.find(f => f.type === 'tex' && f.main) || projectFiles.find(f => f.type === 'tex');
+    
+    if (mainTex) { 
+        activeTexName = mainTex.name; 
+        editor.setValue(b64_to_utf8(mainTex.content)); // Safe Decode
+    } else { 
+        activeTexName = null; 
+        editor.setValue(data.content || ''); 
+    }
+    clearPdfPreview();
+    renderFilePanel();
+    highlightActiveProject(id);
 }
 
 
