@@ -3094,47 +3094,53 @@ function handleImportTex(input) {
 }
 
 
-
 async function handleImportFolder(input) {
-
-    const files = Array.from(input.files); if (!files.length) return;
-
+    const files = Array.from(input.files);
+    if (!files.length) return;
+    
     showUploadOverlay('Importing folder…', files.length);
+    currentDocId = null; 
+    projectFiles = [];
 
-    currentDocId = null; projectFiles = [];
-
+    // FIX: Use the first file in the array to get the root folder name
     const folderName = files[0].webkitRelativePath.split('/')[0];
-    const cleanName = file.webkitRelativePath.replace(/\\/g, '/');
-    projectFiles.push({ name: cleanName, content: base64, type, main: isMain });
-
     document.getElementById('docTitleInput').value = folderName;
 
     let mainTex = null, done = 0;
 
-    for (const file of files) {
+    for (const folderFile of files) {
+        const base64 = await fileToBase64(folderFile);
+        const type = classifyFile(folderFile.name);
+        
+        // Normalize path and classify main.tex
+        const cleanPath = folderFile.webkitRelativePath.replace(/\\/g, '/');
+        const isMain = !mainTex && folderFile.name.toLowerCase() === 'main.tex';
+        
+        if (isMain) mainTex = cleanPath;
 
-        const base64 = await fileToBase64(file);
-
-        const type   = classifyFile(file.name);
-
-        const isMain = !mainTex && type === 'tex';
-
-        if (isMain) mainTex = file.name;
-
-        projectFiles.push({ name: file.name, content: base64, type, main: isMain });
+        projectFiles.push({ 
+            name: cleanPath, 
+            content: base64, 
+            type: type, 
+            main: isMain 
+        });
 
         updateProgress(++done, files.length);
-
     }
 
-    if (mainTex) { activeTexName = mainTex; editor.setValue(atob(projectFiles.find(f => f.name === mainTex).content)); }
+    if (mainTex) {
+        activeTexName = mainTex;
+        const entry = projectFiles.find(f => f.name === mainTex);
+        // Use safe UTF-8 decode
+        if (entry) editor.setValue(b64_to_utf8(entry.content));
+    }
 
-    hideUploadOverlay(); clearPdfPreview(); renderFilePanel(); highlightActiveProject(null);
-
+    hideUploadOverlay();
+    clearPdfPreview();
+    renderFilePanel();
+    highlightActiveProject(null);
     toast(`Imported ${files.length} file(s) from "${folderName}"`);
-
     input.value = '';
-
 }
 
 
@@ -3335,13 +3341,14 @@ function openTexInEditor(name) {
     renderFilePanel();
 }
 
+// CRITICAL: Ensure these use the safe UTF-8 helpers
 function syncEditorToFile() {
     if (!activeTexName) return;
     const existing = projectFiles.find(f => f.name === activeTexName);
     const type = existing ? existing.type : 'tex';
     const isMain = existing ? !!existing.main : true;
     
-    // Switch to the safe helper
+    // SAFE ENCODING FOR ARABIC/FRENCH
     const b64 = utf8_to_b64(editor.getValue());
     
     const idx = projectFiles.findIndex(f => f.name === activeTexName);
@@ -3350,7 +3357,6 @@ function syncEditorToFile() {
 }
 
 function upsertTexFile(name, plainText, isMain) {
-    // Switch to the safe helper
     const b64 = utf8_to_b64(plainText);
     const idx = projectFiles.findIndex(f => f.name === name);
     const entry = { name, content: b64, type: 'tex', main: !!isMain };
