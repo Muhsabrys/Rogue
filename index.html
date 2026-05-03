@@ -3102,25 +3102,26 @@ async function handleImportFolder(input) {
     currentDocId = null; 
     projectFiles = [];
 
-    // FIX: Use the first file in the array to get the root folder name
+    // Correctly get the root folder name from the first file path
     const folderName = files[0].webkitRelativePath.split('/')[0];
     document.getElementById('docTitleInput').value = folderName;
 
     let mainTex = null, done = 0;
 
-    for (const folderFile of files) {
-        const base64 = await fileToBase64(folderFile);
-        const type = classifyFile(folderFile.name);
+    for (const f of files) {
+        // FIX: Await the base64 conversion inside the loop for each file
+        const base64Data = await fileToBase64(f);
+        const type = classifyFile(f.name);
         
-        // Normalize path and classify main.tex
-        const cleanPath = folderFile.webkitRelativePath.replace(/\\/g, '/');
-        const isMain = !mainTex && folderFile.name.toLowerCase() === 'main.tex';
+        // Normalize path (Windows compatibility) and identify main.tex
+        const cleanPath = f.webkitRelativePath.replace(/\\/g, '/');
+        const isMain = !mainTex && f.name.toLowerCase() === 'main.tex';
         
         if (isMain) mainTex = cleanPath;
 
         projectFiles.push({ 
             name: cleanPath, 
-            content: base64, 
+            content: base64Data, 
             type: type, 
             main: isMain 
         });
@@ -3131,7 +3132,7 @@ async function handleImportFolder(input) {
     if (mainTex) {
         activeTexName = mainTex;
         const entry = projectFiles.find(f => f.name === mainTex);
-        // Use safe UTF-8 decode
+        // Use your safe UTF-8 decode helper
         if (entry) editor.setValue(b64_to_utf8(entry.content));
     }
 
@@ -3139,10 +3140,9 @@ async function handleImportFolder(input) {
     clearPdfPreview();
     renderFilePanel();
     highlightActiveProject(null);
-    toast(`Imported ${files.length} file(s) from "${folderName}"`);
+    toast(`Imported ${files.length} files from "${folderName}"`);
     input.value = '';
 }
-
 
 
 async function handleImportZip(input) {
@@ -3797,24 +3797,22 @@ function syncEditorToFile() {
     const existing = projectFiles.find(f => f.name === activeTexName);
     const type = existing ? existing.type : 'tex';
     const isMain = existing ? !!existing.main : true;
-    const b64 = btoa(unescape(encodeURIComponent(editor.getValue())));
+    
+    // Use the safe helper here to fix Arabic/French distortion
+    const b64 = utf8_to_b64(editor.getValue());
+    
     const idx = projectFiles.findIndex(f => f.name === activeTexName);
     const entry = { name: activeTexName, content: b64, type, main: isMain };
     if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
 }
 
 function upsertTexFile(name, plainText, isMain) {
-
-    const b64 = btoa(unescape(encodeURIComponent(plainText)));
-
+    // Use the safe helper here too
+    const b64 = utf8_to_b64(plainText);
     const idx = projectFiles.findIndex(f => f.name === name);
-
     const entry = { name, content: b64, type: 'tex', main: !!isMain };
-
     if (idx >= 0) projectFiles[idx] = entry; else projectFiles.push(entry);
-
     activeTexName = name;
-
 }
 
 function highlightActiveProject(id) { document.querySelectorAll('.project-item').forEach(el => el.classList.toggle('active', el.dataset.id === id)); }
