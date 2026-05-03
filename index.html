@@ -418,56 +418,68 @@ body {
 .search-close:hover { color: var(--text-main); background: var(--bg-elevated); }
 
 /* ─── Resizable Splitter ─────────────────────────────────────── */
-/* The pane-row wraps editor-column and preview side-by-side with flex */
 .pane-row {
     display: flex;
     flex: 1;
     min-height: 0;
+    min-width: 0;
     overflow: hidden;
+    /* initial split: editor 55%, preview 45% */
 }
 .pane-editor {
     display: flex;
     flex-direction: column;
+    flex: 55 1 0%;
     min-width: 120px;
     overflow: hidden;
 }
 .pane-preview {
     display: flex;
     flex-direction: column;
+    flex: 45 1 0%;
     min-width: 120px;
     overflow: hidden;
     background: #1e1e20;
-    border-left: 1px solid var(--border-subtle);
+    border-left: none; /* splitter provides the visual separator */
+    position: relative; /* needed so loading overlay positions correctly */
 }
 
 .splitter {
-    width: 6px;
+    width: 5px;
     flex-shrink: 0;
-    background: var(--bg-panel);
-    border-left: 1px solid var(--border-faint);
-    border-right: 1px solid var(--border-faint);
+    background: var(--border-faint);
     cursor: col-resize;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background var(--t);
-    z-index: 5;
+    z-index: 20;
 }
 .splitter:hover, .splitter.dragging {
-    background: var(--border-subtle);
+    background: var(--amber-dim);
 }
 .splitter::after {
     content: '';
-    width: 2px;
-    height: 32px;
+    width: 1px;
+    height: 40px;
     background: var(--border-medium);
     border-radius: 99px;
-    transition: background var(--t), height var(--t);
+    transition: background var(--t), height var(--t), width var(--t);
 }
 .splitter:hover::after, .splitter.dragging::after {
     background: var(--amber);
-    height: 48px;
+    width: 2px;
+    height: 56px;
+}
+/* Drag shield: transparent full-screen cover during drag so the
+   iframe doesn't steal mouse events */
+#dragShield {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    cursor: col-resize;
 }
 
 /* ─── Preview Pane ──────────────────────────────────────────── */
@@ -485,11 +497,19 @@ body {
 .preview-toolbar .btn { padding: 5px 11px; font-size: 11.5px; background: #222228; border-color: #38383e; color: #aaa; }
 .preview-toolbar .btn:hover { background: #2e2e36; color: #ddd; border-color: #4a4a55; }
 
-#pdfFrame { flex: 1; width: 100%; border: none; display: block; background: #525659; }
+#pdfFrame {
+    display: none;
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    border: none;
+    background: #525659;
+}
 
 .preview-placeholder {
     display: flex; align-items: center; justify-content: center;
     flex: 1; flex-direction: column; gap: 16px; padding: 40px; background: #1a1a1e;
+    min-height: 0;
 }
 .preview-placeholder-icon {
     width: 60px; height: 60px; border-radius: 50%;
@@ -500,8 +520,11 @@ body {
 .preview-placeholder small { font-size: 11px; color: #3a3a44; }
 
 #pdfLoadingOverlay {
-    position: absolute; inset: 40px 0 0 0;
-    background: #1a1a1e; display: none;
+    position: absolute;
+    /* sits below the toolbar (toolbar is ~37px tall) */
+    top: 37px; left: 0; right: 0; bottom: 0;
+    background: #1a1a1e;
+    display: none;
     align-items: center; justify-content: center;
     flex-direction: column; gap: 16px; z-index: 10;
 }
@@ -772,11 +795,11 @@ body {
                                 </button>
                             </div>
                         </div>
-                        <div id="pdfLoadingOverlay" style="position:relative;flex:1;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#1a1a1e">
+                        <div id="pdfLoadingOverlay">
                             <div class="pdf-spinner"></div>
                             <p>Rendering PDF…</p>
                         </div>
-                        <iframe id="pdfFrame" style="display:none;flex:1;width:100%;border:none;background:#525659" title="PDF Preview"></iframe>
+                        <iframe id="pdfFrame" title="PDF Preview"></iframe>
                         <div class="preview-placeholder" id="previewPlaceholder">
                             <div class="preview-placeholder-icon">
                                 <i data-lucide="file-text" style="width:26px;height:26px;color:#444;stroke-width:1.5"></i>
@@ -859,6 +882,8 @@ body {
 <input type="file" id="importFolderInput" webkitdirectory multiple style="display:none" onchange="handleImportFolder(this)">
 <input type="file" id="importZipInput"    accept=".zip"           style="display:none" onchange="handleImportZip(this)">
 <input type="file" id="addFilesInput"     multiple accept=".bib,.png,.jpg,.jpeg,.pdf,.sty,.cls,.tex" style="display:none" onchange="handleAddFiles(this)">
+
+<div id="dragShield"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
@@ -943,78 +968,64 @@ function classifyFile(name) {
 }
 
 /* ═══════════════════════════════════════════════
-   PANE SPLITTER — drag to resize editor / preview
+   PANE SPLITTER — initialised inside window.onload
    ═══════════════════════════════════════════════ */
-(function initSplitter() {
-    let dragging = false, startX = 0, startEditorW = 0, totalW = 0;
-
+function initSplitter() {
     const splitter   = document.getElementById('splitter');
     const paneEditor = document.getElementById('paneEditor');
+    const panePreview = document.getElementById('panePreview');
     const paneRow    = document.getElementById('paneRow');
+    const shield     = document.getElementById('dragShield');
 
-    splitter.addEventListener('mousedown', e => {
+    let dragging = false, startX = 0, startEditorW = 0, rowW = 0;
+
+    function beginDrag(clientX) {
         dragging = true;
-        startX = e.clientX;
-        // paneRow width minus file-panel width and splitter itself
-        totalW = paneRow.getBoundingClientRect().width;
+        startX = clientX;
+        rowW = paneRow.getBoundingClientRect().width;
         startEditorW = paneEditor.getBoundingClientRect().width;
         splitter.classList.add('dragging');
+        // Shield blocks the iframe from eating mouse events
+        shield.style.display = 'block';
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
-        e.preventDefault();
-    });
+    }
 
-    document.addEventListener('mousemove', e => {
+    function moveDrag(clientX) {
         if (!dragging) return;
-        const dx = e.clientX - startX;
-        const newEditorW = Math.max(120, Math.min(totalW - 120 - 6, startEditorW + dx));
-        const newPreviewW = totalW - newEditorW - 6; // 6 = splitter width
+        const SPLITTER_W = splitter.offsetWidth; // 5px
+        const dx = clientX - startX;
+        const maxEditor = rowW - 120 - SPLITTER_W;
+        const newEditorW  = Math.max(120, Math.min(maxEditor, startEditorW + dx));
+        const newPreviewW = rowW - newEditorW - SPLITTER_W;
+
+        // Use explicit px widths — disables flex-grow so sizes stick
         paneEditor.style.flex  = 'none';
         paneEditor.style.width = newEditorW + 'px';
-        document.getElementById('panePreview').style.flex  = 'none';
-        document.getElementById('panePreview').style.width = newPreviewW + 'px';
-        if (editor) editor.refresh();
-    });
+        panePreview.style.flex  = 'none';
+        panePreview.style.width = newPreviewW + 'px';
 
-    document.addEventListener('mouseup', () => {
+        if (editor) editor.refresh();
+    }
+
+    function endDrag() {
         if (!dragging) return;
         dragging = false;
         splitter.classList.remove('dragging');
+        shield.style.display = 'none';
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
         if (editor) editor.refresh();
-    });
+    }
 
-    // Touch support
-    splitter.addEventListener('touchstart', e => {
-        const t = e.touches[0];
-        dragging = true;
-        startX = t.clientX;
-        totalW = paneRow.getBoundingClientRect().width;
-        startEditorW = paneEditor.getBoundingClientRect().width;
-        splitter.classList.add('dragging');
-    }, { passive: true });
+    splitter.addEventListener('mousedown', e => { e.preventDefault(); beginDrag(e.clientX); });
+    document.addEventListener('mousemove', e => moveDrag(e.clientX));
+    document.addEventListener('mouseup',   endDrag);
 
-    document.addEventListener('touchmove', e => {
-        if (!dragging) return;
-        const t = e.touches[0];
-        const dx = t.clientX - startX;
-        const newEditorW = Math.max(120, Math.min(totalW - 120 - 6, startEditorW + dx));
-        const newPreviewW = totalW - newEditorW - 6;
-        paneEditor.style.flex  = 'none';
-        paneEditor.style.width = newEditorW + 'px';
-        document.getElementById('panePreview').style.flex  = 'none';
-        document.getElementById('panePreview').style.width = newPreviewW + 'px';
-        if (editor) editor.refresh();
-    }, { passive: true });
-
-    document.addEventListener('touchend', () => {
-        if (!dragging) return;
-        dragging = false;
-        splitter.classList.remove('dragging');
-        if (editor) editor.refresh();
-    });
-})();
+    splitter.addEventListener('touchstart', e => { beginDrag(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('touchmove',  e => { moveDrag(e.touches[0].clientX); }, { passive: true });
+    document.addEventListener('touchend',   endDrag);
+}
 
 /* ─── Init ─────────────────────────────────────────────────── */
 window.onload = () => {
@@ -1033,6 +1044,7 @@ window.onload = () => {
     loadBlankTemplate('Computational linguistics!? What is that?', 'Muhammad S. Abdo');
     checkSession();
     initStatusBar();
+    initSplitter();
     lucide.createIcons();
     document.addEventListener('click', e => { if (!e.target.closest('.dropdown-wrapper')) closeDropdown(); });
     document.addEventListener('keydown', e => {
@@ -1566,17 +1578,17 @@ function renderPdf(base64) {
     const blob = new Blob([bytes], { type: 'application/pdf' });
     currentPdfBlobUrl = URL.createObjectURL(blob);
 
+    // Show toolbar, hide placeholder, show loading overlay
+    document.getElementById('previewToolbar').style.display    = 'flex';
     document.getElementById('previewPlaceholder').style.display = 'none';
-    document.getElementById('previewToolbar').style.display     = 'flex';
-    document.getElementById('pdfLoadingOverlay').style.display  = 'flex';
+    document.getElementById('pdfLoadingOverlay').classList.add('show');
 
     const frame = document.getElementById('pdfFrame');
-    frame.style.display = 'block';
-    frame.style.flex    = '1';
+    frame.style.display = 'flex'; // flex so it fills pane-preview's remaining height
     frame.onload = () => {
-        document.getElementById('pdfLoadingOverlay').style.display = 'none';
-        document.getElementById('previewPageInfo').textContent     = 'PDF ready';
-        document.getElementById('downloadPdfBtn').disabled         = false;
+        document.getElementById('pdfLoadingOverlay').classList.remove('show');
+        document.getElementById('previewPageInfo').textContent = 'PDF ready';
+        document.getElementById('downloadPdfBtn').disabled     = false;
     };
     frame.src = currentPdfBlobUrl;
 }
@@ -1584,16 +1596,17 @@ function renderPdf(base64) {
 function reloadPdfFrame() {
     if (!currentPdfBlobUrl) return;
     const frame = document.getElementById('pdfFrame');
-    document.getElementById('pdfLoadingOverlay').style.display = 'flex';
-    frame.onload = () => { document.getElementById('pdfLoadingOverlay').style.display = 'none'; };
+    document.getElementById('pdfLoadingOverlay').classList.add('show');
+    frame.onload = () => { document.getElementById('pdfLoadingOverlay').classList.remove('show'); };
     frame.src = currentPdfBlobUrl;
 }
 
 function clearPdfPreview() {
     if (currentPdfBlobUrl) { URL.revokeObjectURL(currentPdfBlobUrl); currentPdfBlobUrl = null; }
     const frame = document.getElementById('pdfFrame');
-    frame.src = 'about:blank'; frame.style.display = 'none';
-    document.getElementById('pdfLoadingOverlay').style.display = 'none';
+    frame.src = 'about:blank';
+    frame.style.display = 'none';
+    document.getElementById('pdfLoadingOverlay').classList.remove('show');
     document.getElementById('previewToolbar').style.display    = 'none';
     document.getElementById('downloadPdfBtn').disabled         = true;
     const ph = document.getElementById('previewPlaceholder');
