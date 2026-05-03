@@ -1955,33 +1955,25 @@ body {
 
         <input type="text" id="docTitleInput" class="title-input" value="Untitled Project" placeholder="Project title…">
 
-        <div class="toolbar-actions">
-
-            <button class="btn btn-primary" id="compileBtn" onclick="compile()">
-
-                <i data-lucide="play" style="width:14px;height:14px"></i> Compile
-
-            </button>
-
-            <button class="btn" id="saveCloudBtn" onclick="saveToCloud()" disabled>
-
-                <i data-lucide="cloud" style="width:14px;height:14px"></i> Save
-
-            </button>
-
-            <button class="btn btn-ghost" onclick="downloadTeX()">
-
-                <i data-lucide="download" style="width:14px;height:14px"></i> .tex
-
-            </button>
-
-            <button class="btn btn-success" id="downloadPdfBtn" onclick="downloadPDF()" disabled>
-
-                <i data-lucide="file-down" style="width:14px;height:14px"></i> PDF
-
-            </button>
-
-        </div>
+    <div class="toolbar-actions">
+        <button class="btn btn-primary" id="compileBtn" onclick="compile()">
+            <i data-lucide="play" style="width:14px;height:14px"></i> Compile
+        </button>
+        <button class="btn" id="saveCloudBtn" onclick="saveToCloud()" disabled>
+            <i data-lucide="cloud" style="width:14px;height:14px"></i> Save
+        </button>
+        
+        <button class="btn btn-ghost" onclick="downloadProjectZip()" id="zipDownloadBtn">
+            <i data-lucide="archive" style="width:14px;height:14px"></i> .zip
+        </button>
+    
+        <button class="btn btn-ghost" onclick="downloadTeX()">
+            <i data-lucide="download" style="width:14px;height:14px"></i> .tex
+        </button>
+        <button class="btn btn-success" id="downloadPdfBtn" onclick="downloadPDF()" disabled>
+            <i data-lucide="file-down" style="width:14px;height:14px"></i> PDF
+        </button>
+    </div>
 
     </div>
 
@@ -3695,7 +3687,53 @@ function downloadPDF() {
 
 }
 
+async function downloadProjectZip() {
+    const zip = new JSZip();
+    const projectTitle = document.getElementById('docTitleInput').value.trim() || 'RogueTeX_Project';
+    
+    // 1. Sync current editor content to our projectFiles array
+    syncEditorToFile();
 
+    if (projectFiles.length === 0) {
+        toast("No files to download", true);
+        return;
+    }
+
+    const zipBtn = document.getElementById('zipDownloadBtn');
+    const originalContent = zipBtn.innerHTML;
+    zipBtn.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:14px;height:14px"></i>...';
+    lucide.createIcons();
+
+    try {
+        // 2. Add each file from projectFiles to the ZIP
+        projectFiles.forEach(file => {
+            // We use atob to turn the base64 back into binary
+            const binaryString = atob(file.content);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            zip.file(file.name, bytes);
+        });
+
+        // 3. Generate and trigger download
+        const content = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${projectTitle}.zip`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        toast("Project ZIP ready");
+    } catch (err) {
+        console.error(err);
+        toast("ZIP failed", true);
+    } finally {
+        zipBtn.innerHTML = originalContent;
+        lucide.createIcons();
+    }
+}
 
 function triggerDownload(url, filename) {
 
