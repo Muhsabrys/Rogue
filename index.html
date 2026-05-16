@@ -1815,14 +1815,20 @@ async function compile() {
             renderPdf(data.pdf);
             lastCompileLog = ''; // clear on success
         } else {
-            lastCompileLog = data.log || data.error || '';
+            // Priority: Detailed error > generic error > log
+            const fullErrorMessage = data.error || data.log || "Unknown Error";
+            
+            // Store for AI context
+            lastCompileLog = fullErrorMessage;
+            
             clearPdfPreview();
-            document.getElementById('previewPlaceholder').innerHTML =
-                `<div style="padding:24px;color:var(--red);width:100%;overflow:auto">
-                    <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;color:var(--red)">Compilation Error</div>
-                    <pre style="white-space:pre-wrap;font-size:11.5px;font-family:var(--font-mono);color:#c47;line-height:1.6;background:var(--red-dim);padding:14px;border-radius:6px;border:1px solid rgba(208,69,69,0.2)">${data.log || data.error}</pre>
+            const ph = document.getElementById('previewPlaceholder');
+            ph.innerHTML = `
+                <div style="padding:24px; color:var(--red); width:100%; height:100%; overflow-y:auto; text-align:left;">
+                    <div style="font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;">Compilation Error</div>
+                    <pre style="white-space:pre-wrap; font-size:12px; font-family:var(--font-mono); color:#ff8585; line-height:1.6; background:rgba(208,69,69,0.1); padding:16px; border-radius:6px; border:1px solid rgba(208,69,69,0.2)">${fullErrorMessage}</pre>
                 </div>`;
-            document.getElementById('previewPlaceholder').style.display = 'block';
+            ph.style.display = 'block';
         }
     } catch (err) {
         clearPdfPreview();
